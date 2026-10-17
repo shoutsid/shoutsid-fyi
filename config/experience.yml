@@ -111,7 +111,7 @@ skills:
   - group: Languages & frameworks
     items: [Ruby, Ruby on Rails, Python, SQL, JavaScript, TypeScript]
   - group: Architecture & design
-    items: [Modular monoliths, Domain-driven design, Packwerk, Domain boundaries, Transactional outbox, Saga patterns, Legacy integration]
+    items: [Modular monoliths, Domain-driven design, Packwerk, Domain boundaries, Transactional outbox, Event-driven integration, Legacy integration]
   - group: Delivery & quality
     items: [TDD, CI/CD, Bitbucket Pipelines, Docker, Dependency & framework upgrades, Code review, Developer mentoring]
   - group: Data & platforms

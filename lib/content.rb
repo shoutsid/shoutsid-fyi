@@ -50,7 +50,7 @@ module ShoutsidFyi
       "blog" => %w[description intro],
       "about" => %w[experience_note],
       "contact" => %w[description where_note],
-      "cv" => %w[description download_label projects_note],
+      "cv" => %w[description download_label projects_note projects_note_print],
       "errors" => %w[not_found server_error]
     }.freeze
 

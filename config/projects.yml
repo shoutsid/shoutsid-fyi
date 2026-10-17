@@ -15,26 +15,31 @@ projects:
     featured: true
     section: main
     year: "2024"
-    tagline: Packwerk boundaries, a transactional outbox and a saga pattern in Rails.
+    tagline: Packwerk boundaries, a transactional outbox and a Kafka consumer in Rails.
     summary: >
-      A worked example of splitting a Rails application into domains with
-      Packwerk, isolating databases per domain, and using a transactional
-      outbox with Kafka and the Karafka gem so that events published by one
-      domain survive a crash between the write and the publish.
+      A worked example of splitting a Rails application into Packwerk-bounded
+      components, with a transactional outbox so an event written in the same
+      transaction as the data is never lost before it is published. Debezium
+      tails the outbox table through Kafka Connect, a Karafka consumer processes
+      the event with a dead-letter queue, and the AI component answers through a
+      local Ollama model and keeps its own database.
     highlights:
       - Domain boundaries enforced by Packwerk rather than by folder naming.
-      - One database per domain, with the saga pattern choreographing across them.
       - A transactional outbox so an event cannot be lost between commit and publish.
-      - Kafka Connect tailing the outbox log and pushing events onto Kafka.
+      - Kafka Connect tailing the outbox table and pushing events onto Kafka.
+      - A Karafka consumer for the AI component's outbox events, with a dead-letter queue.
+      - The AI component keeps its own database through Rails' multiple-database connection.
       - A generative-AI component wired to a local Ollama model.
     screenshots:
-      - label: Domain boundaries and the outbox path, drawn from the project's own structure.
+      - label: The reference implementation's four-domain shape, which the Rails port starts from.
         path: /diagrams/rails-outbox.svg
-        alt: "A diagram of four Packwerk-bounded domains, each with its own database; a write that lands in a transactional outbox table inside the same transaction; Kafka Connect tailing that table; and events published to Kafka for the other domains to consume."
+        alt: "A diagram of the reference implementation's four domains, each with its own database; a write that lands in a transactional outbox table inside the same transaction; Kafka Connect tailing that table; and events published to Kafka for the other domains to consume. The Rails port implements the Packwerk boundaries, the outbox and the Kafka path, but not the per-domain databases or the reference's sagas."
     notes: >
       A demonstration project, written up in the same spirit as the
       architecture direction advocated at City Electrical Factors, described
-      in the experience history on the About page.
+      in the experience history on the About page. A partial port: the Packwerk
+      boundaries, outbox, Kafka path and Karafka consumer are implemented; the
+      reference's per-domain databases and saga choreography are not.
     stack: [Ruby on Rails, Packwerk, Kafka, Karafka, Ollama, DDD]
     links:
       - label: GitHub
@@ -47,7 +52,7 @@ projects:
     status: live
     featured: true
     section: main
-    year: "2025 — present"
+    year: "2026 — present"
     tagline: Developer API for web capture, extraction and monitoring.
     summary: >
       An HTTP API for capturing web pages as screenshots or documents,
@@ -110,15 +115,21 @@ projects:
     summary: >
       A service holding the breaking changes, undocumented errors and signature
       surprises that release notes do not cover, together with the fix that
-      actually worked. A report is only marked resolved_verified once enough
-      other operators independently reproduce it, so the confirmation count has
-      evidence under it rather than being a number.
+      actually worked. Reports are filed by agents and operators, and one is
+      only marked resolved_verified once other operators independently
+      reproduce it, so the confirmation count has evidence under it rather than
+      being a number. It is a Rails application: the domain code is split into
+      packages whose boundaries the build enforces, and the same service answers
+      what a Rails upgrade crosses and which call sites a release breaks in the
+      caller's own files.
     highlights:
       - "Verification is executable: two services run beside the miner and execute a claim against the releases it is about, recording what the interpreter said."
       - GET /reports/{id} returns that recorded evidence alongside the report itself.
       - Clients are not peers — the miner has no database password and no route to the database.
+      - The corpus is grown by executing one release of a package against the next and filing what is new, rather than by scraping release notes.
+      - GET /rails/upgrade plans a move from the documented ladder plus what the corpus has actually observed; POST /rails/scan finds the call sites a release breaks in the caller's own files.
+      - An MCP server over stdio and a hosted Streamable HTTP endpoint, so agents can search, read, file and verify reports as tools.
       - Published through a Cloudflare Tunnel from a host with no inbound ports and no public IP.
-      - An MCP integration so agents can query it as a tool.
     demo:
       title: The served root, from the running service (abridged)
       request: curl -s https://agents.shoutsid.fyi/
@@ -131,7 +142,7 @@ projects:
       Deployed and publicly reachable. Described as a knowledge exchange rather
       than a corpus with a population: the verification rule is the claim, and
       what is not claimed is a user count or a coverage figure.
-    stack: [Python, PostgreSQL, Docker Compose, Cloudflare Tunnel, MCP]
+    stack: [Ruby on Rails, Packwerk, PostgreSQL, Docker Compose, Cloudflare Tunnel, MCP]
     links:
       - label: agents.shoutsid.fyi
         url: https://agents.shoutsid.fyi/
@@ -180,7 +191,7 @@ projects:
     status: research
     featured: true
     section: systems
-    year: "2025 — present"
+    year: "2026 — present"
     tagline: Can a network's topology adapt during pretraining?
     summary: >
       An experimental pretraining framework investigating whether jointly
@@ -188,20 +199,22 @@ projects:
       improve the trade-off between model capability and compute cost, compared
       with fixed architectures of comparable capacity.
     highlights:
-      - A research hypothesis, explicitly not a demonstrated result.
+      - A research hypothesis, explicitly not a demonstrated result — the joint topology question is still open, while the later architecture-search phase reports a positive result on a narrower question.
       - Pre-registered studies with declared decision rules, rather than results read after the fact.
       - Compute-aware topology search rather than unconstrained growth.
       - Model-importance signals — routing load, gradient norms, Fisher approximations and causal ablation — driving where topology may change.
       - "Machine-checked claims: a verification script audits the report against its committed artifacts, and the suite pins each arm's recorded result against its own summary, so a claim that drifts from the record fails the build."
       - Control and null arms a result has to beat to count, including a do-nothing clause.
     notes: >
-      Independent research. Implementation details remain private, so this is
-      described at the level of the question and the method. Reported negative
-      and null outcomes are recorded as they stand rather than rounded toward
-      the hypothesis, and the campaign that would settle the central question
+      Independent research with public source, described at the level of the
+      question, the method and the public record. Reported negative and null
+      outcomes are recorded as they stand rather than rounded toward the
+      hypothesis, and the campaign that would settle the central question
       remains incomplete with no verdict.
     stack: [Python, PyTorch, topology search, experiment tracking, XLA]
-    links: []
+    links:
+      - label: GitHub
+        url: https://github.com/shoutsid/act-lab
 
   # Research rather than public. The source is readable, but the question the
   # project is about — whether complexity or replication emerges — has not been
@@ -213,7 +226,7 @@ projects:
     status: research
     featured: true
     section: systems
-    year: "2025"
+    year: "2026"
     tagline: A deterministic artificial-life simulation with reproducible experiments.
     summary: >
       A virtual-machine-based artificial-life simulation with reproducible
@@ -229,10 +242,10 @@ projects:
       Findings are reported conservatively. Spontaneous replication has not
       been demonstrated, and visual complexity is not treated as evidence of
       it.
-    stack: [C, WebGL, simulation, reproducible experiments]
+    stack: [C, Python, WebGL, simulation, reproducible experiments]
     links:
       - label: GitHub
-        url: https://github.com/shoutsid-lab/evo16
+        url: https://github.com/shoutsid/evo16
 
   - slug: planetary-matrix
     title: Planetary Matrix
@@ -243,7 +256,8 @@ projects:
     tagline: A headless Earth-scale simulation core, partitioned into shards that do not share memory.
     summary: >
       A simulation core that partitions the planet into S2 grid cells and treats
-      each level-13 cell as an independent shard of a sharded key-value store.
+      each level-13 cell as an independent shard of a sharded key-value store by
+      default.
       Neighbouring cells are joined only by a graph of boundary ports, so a cell
       can be evicted from memory while its neighbour keeps running against a
       proxy horizon. A graphical client is deliberately not part of the
@@ -251,31 +265,39 @@ projects:
       draws it.
     highlights:
       - S2 cell-id implemented in-tree rather than linked against google/s2geometry, which would pull Abseil and OpenSSL into the build.
-      - Cell payloads round-trip through a key-value interface with two backends — an in-memory map and a directory of one file per partition.
+      - Cell payloads round-trip through a key-value interface with three backends — an in-memory map, a directory of one file per partition, and a clustered wide-column store over a token ring.
       - "Cross-grid utility flow across an evicted cell, proven by a scenario: the boundary scan marries dangling ports, the source is written down and dropped, and the neighbour still receives labelled synthesised flow."
       - Utilities carry their own units through the flow report, and unserved demand is reported rather than absorbed.
       - An offline build gate (scripts/check.sh) that fetches nothing, so it behaves the same with network egress disabled.
       - A browser viewport against the same data layer, served by a second binary over a recorded HTTP contract.
     demo:
-      title: The project's own gate, run on a clean build
+      title: The project's own gate, run on a clean build (abridged)
       request: ./scripts/check.sh
       response: |
+        ---- build
+        PASS  build
+        ---- unit and fixture suite
         PASS  unit and fixture suite
         ---- milestone 2 scenario
           PASS  the boundary scan married the two ports
           PASS  the neighbour still receives, and the flow is labelled synthesised
-          PASS  the isolation check passed
+          PASS  the isolation check passes
         milestone 2: all checks passed
+        SKIP  milestone 3 (scripts/serve-check.sh) — needs node, curl and a Chrome
+        check.sh: all stages passed
     notes: >
-      A work in progress with a deliberate shape: three milestones are built —
-      the headless sandbox, cross-grid flow, and the browser viewport — and each
-      is demonstrated by a named artifact rather than asserted. The roadmap
-      marks its own open items as open. Findings are stated as what the checks
+      A work in progress with a deliberate shape. The first three milestones are
+      built — the headless sandbox, cross-grid flow, and the browser viewport —
+      and later slices build on them: a clustered wide-column store, square
+      shards, a 3D client, a clock and event stream, and the property,
+      sanitation, transit, market, progression and debt systems. Each is
+      demonstrated by a named artifact rather than asserted; the roadmap marks
+      its own open items as open, and findings are stated as what the checks
       currently pass, not as a claim about the simulation's fidelity.
-    stack: [C++, CMake, Flecs ECS, doctest, S2 geometry, sharded key-value store]
+    stack: [C++, CMake, Flecs ECS, doctest, S2 geometry, sharded key-value store, WebGL]
     links:
       - label: GitHub
-        url: https://github.com/shoutsid-lab/planetary-matrix
+        url: https://github.com/shoutsid/planetary-matrix
 
   - slug: townhall
     title: Townhall

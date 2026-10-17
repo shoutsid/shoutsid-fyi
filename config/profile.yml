@@ -15,11 +15,11 @@ role: Senior Software Engineer
 tagline: Rails · Backend systems · Practical AI
 # The <h1>. One sentence, and the only place a positioning claim is made.
 headline: Building robust backend systems and practical AI tools.
-location: Seaham, County Durham, United Kingdom
+location: Hartlepool, County Durham, United Kingdom
 # The short form, for the homepage dateline where the full string is too long
 # to sit beside the role. Kept here rather than written into the template,
 # because a place name is a claim about James and every claim lives in config.
-short_location: Seaham, County Durham
+short_location: Hartlepool, County Durham
 email: jsummerill.ltd@gmail.com
 
 # The hero lede and the About page opener.
@@ -46,8 +46,11 @@ links:
     url: https://github.com/shoutsid
   - label: LinkedIn
     url: https://www.linkedin.com/in/jsummerill/
+  # A project rather than a contact: shown beside the others on the page, but
+  # left out of the printed CV's contact line (see `cv.erb`).
   - label: Webcap
     url: https://webcap.shoutsid.fyi/
+    cv: false
   - label: Email
     url: mailto:jsummerill.ltd@gmail.com
 

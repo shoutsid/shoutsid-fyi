@@ -283,6 +283,10 @@ RSpec.describe ShoutsidFyi::App do
       expect(last_response.body).to include("Available for senior backend and Rails engineering roles")
     end
 
+    it "carries the current city" do
+      expect(last_response.body).to include("Hartlepool, County Durham")
+    end
+
     # The point of generating the CV from the content store is that it cannot
     # disagree with the rest of the site. If a role is on About it is on the
     # CV, because both read the same record — so this asserts the join rather
@@ -320,6 +324,18 @@ RSpec.describe ShoutsidFyi::App do
       # Printing is an action, so the element is a button.
       expect(last_response.body).to include(%(<button type="button" class="print-button" data-print>))
       expect(last_response.body).not_to include(%(<a href="#" data-print>))
+    end
+
+    # A PDF cannot follow "under Work" and cannot click a label, so the two
+    # outputs deliberately differ: web-only pointers carry `no-print`, the
+    # contact line carries the bare address, and the note is replaced rather
+    # than hidden. The print stylesheet is what acts on these; the classes are
+    # the contract between it and the template.
+    it "marks the parts the paper version leaves out or replaces" do
+      expect(last_response.body).to include(%(class="cv-contact-link no-print"))
+      expect(last_response.body).to include(%(data-print-url="github.com/shoutsid"))
+      expect(last_response.body).to include(%(class="role-link no-print"))
+      expect(last_response.body).to include(%(class="section-note print-only"))
     end
   end
 

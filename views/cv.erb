@@ -4,12 +4,22 @@
     <h1><%= profile["name"] %></h1>
     <p class="cv-role"><%= profile["role"] %> · <%= profile["tagline"] %></p>
     <p class="cv-contact">
-      <%= profile["location"] %> ·
+      <span class="cv-location"><%= profile["location"] %></span>
       <a href="mailto:<%= profile["email"] %>"><%= profile["email"] %></a>
       <%# The email is already named on the line above, so the link list beside
-          it carries the profiles only. %>
-      <% profile_links.reject { |link| link["url"].to_s.start_with?("mailto:") }.each do |link| %> ·
-        <a href="<%= link["url"] %>"<%= " target=\"_blank\" rel=\"noopener noreferrer\"" if external_link?(link["url"]) %>><%= link["label"] %></a>
+          it carries the profiles only. A link marked `cv: false` still appears
+          on the page but is left off the printed CV: the printed contact line
+          is for reaching James, not for listing projects. `data-print-url`
+          is the bare address the print stylesheet appends, because a PDF
+          cannot be clicked. %>
+      <%# The printed contact block is two lines by design: where he is and how
+          to write on the first, the profiles as bare addresses on the second. %>
+      <br class="print-only">
+      <% profile_links.reject { |link| link["url"].to_s.start_with?("mailto:") }.each do |link| %>
+        <% print_url = link["url"].sub(%r{\Ahttps?://(?:www\.)?}, "").sub(%r{/\z}, "") %>
+        <a class="cv-contact-link<%= " no-print" if link["cv"] == false %>"
+           href="<%= link["url"] %>"
+           data-print-url="<%= print_url %>"<%= " target=\"_blank\" rel=\"noopener noreferrer\"" if external_link?(link["url"]) %>><%= link["label"] %></a>
       <% end %>
     </p>
     <p class="cv-download no-print">
@@ -46,7 +56,8 @@
         <%# The same optional link /about renders, so the CV points at the
             write-up rather than describing it. %>
         <% if role["link"].is_a?(Hash) %>
-          <p class="role-link">
+          <%# A web pointer: the printed CV has no site to follow it to. %>
+          <p class="role-link no-print">
             <a href="<%= role["link"]["path"] %>"><%= role["link"]["label"] %> →</a>
           </p>
         <% end %>
@@ -64,7 +75,8 @@
   <% if @selected.any? %>
     <section class="cv-section" aria-labelledby="cv-projects-heading">
       <h2 id="cv-projects-heading">Selected independent work</h2>
-      <p class="section-note"><%= page_copy("cv", "projects_note") %></p>
+      <p class="section-note screen-only"><%= page_copy("cv", "projects_note") %></p>
+      <p class="section-note print-only"><%= page_copy("cv", "projects_note_print") %></p>
       <% @selected.each do |project| %>
         <div class="cv-role-block">
           <h3>

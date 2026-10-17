@@ -1370,6 +1370,13 @@ main.wrap {
   text-decoration: underline;
 }
 
+/* Generated rather than written between the items, so a link the print
+   stylesheet removes (Webcap) takes its separator with it. */
+.cv-contact > * + *::before {
+  content: " · ";
+  color: var(--text-faint);
+}
+
 /* The CV download control: an icon and a label, no prose. A button because it
    performs an action — the browser's print dialog, which is where "save as
    PDF" lives — rather than going somewhere. */
@@ -1459,20 +1466,46 @@ main.wrap {
 
 /* ---------------------------------------------------------------- print */
 
+/* The printed CV is a document of its own, not the screen page with the chrome
+   hidden: A4, one column, tighter leading and a contact block with addresses
+   rather than clickable labels. `print-only` is the mirror of `no-print`; both
+   exist so the page and the paper can say different things deliberately. */
+.print-only {
+  display: none;
+}
+
 @media print {
+  @page {
+    size: A4;
+    margin: 13mm 15mm 14mm;
+  }
+
+  html {
+    font-size: 10pt;
+  }
+
   body {
     background: #fff;
     background-image: none;
     color: #000;
-    font-size: 11pt;
-    line-height: 1.5;
+    font-size: 10.5pt;
+    line-height: 1.38;
   }
 
   .site-header,
   .site-footer,
   .skip-link,
-  .no-print {
+  .no-print,
+  .screen-only {
     display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  br.print-only {
+    display: inline !important;
   }
 
   main.wrap {
@@ -1485,10 +1518,35 @@ main.wrap {
     text-decoration: none;
   }
 
-  .cv-contact a[href^="http"]::after {
-    content: " (" attr(href) ")";
-    font-size: 0.85em;
-    color: #444;
+  /* The address is the useful half of a link on paper; a label alone cannot
+     be followed. The label is hidden by taking the anchor's own text to zero
+     and giving the address its size back, so the separator generated on the
+     anchor has to be restored too. The Webcap link carries `no-print`
+     because it is a project, not a contact. */
+  .cv-contact a[data-print-url] {
+    font-size: 0;
+  }
+
+  .cv-contact a[data-print-url]::after {
+    content: attr(data-print-url);
+    font-size: 8.2pt;
+    color: #333;
+  }
+
+  .cv-contact a[data-print-url]::before {
+    font-size: 8.2pt;
+  }
+
+  .cv-contact > * + *::before,
+  .role-period::before,
+  .role-location::before {
+    color: #666;
+  }
+
+  /* The first profile follows the deliberate line break; a separator there
+     would start the second line with a dot. */
+  .cv-contact br.print-only + a::before {
+    content: none;
   }
 
   .cv-head,
@@ -1496,10 +1554,142 @@ main.wrap {
     border-color: #999;
   }
 
+  .cv-head {
+    padding-bottom: 0.6rem;
+    border-bottom-width: 1pt;
+  }
+
+  /* The name is the title of a CV; the label above it is furniture on a page
+     and a wasted line on paper. */
+  .cv-head .eyebrow {
+    display: none;
+  }
+
+  .cv-head h1 {
+    font-size: 24pt;
+    line-height: 1.05;
+    margin-bottom: 0.15rem;
+  }
+
+  .cv-role {
+    font-size: 10.5pt;
+    margin-bottom: 0.25rem;
+    color: #333;
+  }
+
+  .cv-contact {
+    font-size: 8.2pt;
+    line-height: 1.3;
+    margin: 0;
+    color: #333;
+  }
+
+  .cv-section {
+    padding-block: 0.8rem;
+    border-bottom-width: 0.5pt;
+    max-width: 100%;
+  }
+
+  .cv-section:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .cv-section h2 {
+    font-size: 12pt;
+    border-bottom: 0;
+    padding-bottom: 0;
+    margin-bottom: 0.5rem;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* A role is the unit that must not be cut: half a job on each page reads as
+     two jobs. The toolkit is kept whole for the same reason. */
+  .cv-role-block {
+    margin-bottom: 0.7rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .cv-role-block h3 {
+    font-size: 10.5pt;
+    margin-bottom: 0;
+  }
+
+  .role-meta {
+    font-size: 7.6pt;
+    gap: 0.1rem 0.4rem;
+    margin-top: 0;
+    color: #333;
+  }
+
+  .cv-role-block p {
+    margin-bottom: 0.2rem;
+  }
+
+  .highlights {
+    margin-block: 0.15rem 0;
+    padding-left: 1rem;
+  }
+
+  .highlights li {
+    margin-bottom: 0.05rem;
+    orphans: 2;
+    widows: 2;
+  }
+
+  .section-note {
+    font-size: 8.2pt;
+    margin-bottom: 0.3rem;
+    color: #444;
+  }
+
+  .muted {
+    color: #333;
+  }
+
   .badge {
-    border-color: #666;
-    color: #000;
+    border: 0;
+    padding: 0;
     background: none;
+    color: #444;
+    font-size: 7.5pt;
+  }
+
+  .cv-skills {
+    gap: 0.25rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .cv-skills dt {
+    font-size: 7pt;
+    letter-spacing: 0.05em;
+    color: #333;
+  }
+
+  .cv-skills dd {
+    font-size: 9.2pt;
+    margin-bottom: 0.1rem;
+  }
+
+  .plain-list {
+    gap: 0;
+  }
+
+  .plain-list li {
+    padding-bottom: 0.25rem;
+    border-bottom: 0;
+  }
+
+  .plain-list li + li {
+    border-top: 0.5pt dotted #bbb;
+    padding-top: 0.25rem;
+  }
+
+  .plain-list .muted {
+    font-size: 8.2pt;
   }
 }
 

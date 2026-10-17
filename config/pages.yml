@@ -88,6 +88,9 @@ cv:
   projects_note: >-
     Independent development on selected projects, not employment. Full case
     studies under Work.
+  # The printed CV cannot follow "under Work": the pointer is to this site.
+  projects_note_print: >-
+    Independent development on selected projects, not employment.
 
 errors:
   not_found: >-

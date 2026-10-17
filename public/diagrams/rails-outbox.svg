@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 740" role="img"
      aria-labelledby="rails-outbox-title" preserveAspectRatio="xMidYMid meet">
-  <title id="rails-outbox-title">Domain boundaries and the transactional outbox path in the Rails modular monolith</title>
+  <title id="rails-outbox-title">The reference implementation's domain boundaries and transactional outbox path</title>
 
   <!-- The diagram carries its own palette rather than inheriting the page's:
        an SVG in an img cannot see data-theme, so the OS preference is the only
