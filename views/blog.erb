@@ -1,0 +1,25 @@
+<header class="page-head">
+  <p class="eyebrow">Blog</p>
+  <h1>Posts</h1>
+  <p class="lede"><%= page_copy("blog", "intro") %></p>
+</header>
+
+<% if @posts.empty? %>
+  <p class="empty-state">Nothing published yet.</p>
+<% else %>
+  <ul class="post-list post-list-lg">
+    <% @posts.each do |post| %>
+      <li class="post-row">
+        <h2><a href="<%= post.url %>"><%= post.title %></a></h2>
+        <p class="post-meta">
+          <time datetime="<%= post.iso_date %>"><%= post.date_display %></time>
+          · <%= post.reading_minutes %> min read
+          <% if post.tags.any? %> · <%= format_tags(post.tags) %><% end %>
+        </p>
+        <p class="post-summary"><%= post.summary %></p>
+      </li>
+    <% end %>
+  </ul>
+<% end %>
+
+<p class="feed-link"><a href="/blog/feed.xml">Subscribe via RSS</a></p>

@@ -1,0 +1,96 @@
+# Page-level prose.
+#
+# These sentences used to live in the templates, which the architecture notes
+# already said they must not: `config/` holds the prose and the claims, and a
+# template renders them. The rule was true of the design and false of the code,
+# and it cost something. The homepage advertised "a deployed service and two
+# public engineering projects" for a while after a third repository was added,
+# because a sentence describing the content was in no position to be checked
+# against it. One line said "Earlier explorations and supporting work" over a
+# section that contained a deployed service.
+#
+# So the rule is now kept, and `spec/site_integrity_spec.rb` fails on a
+# template that carries a sentence of its own.
+#
+# A link is a separate key rather than markup inside the prose, so a sentence
+# stays a sentence and the anchor stays an anchor.
+
+# Copy shared by both pages. The homepage and `/work` render the same sections
+# from the same field in config/projects.yml, so a note explaining a section is
+# written once. Two copies is how the two pages start describing the same group
+# in different words — which is the drift the reviewer caught about prominence.
+shared:
+  systems_note: >-
+    Systems work and ongoing research. Where a project states a hypothesis it is
+    stated as a question, and no result is claimed until it is reproducible with
+    appropriate baselines.
+  more_note: >-
+    Archived and in-progress work, each carrying its status.
+
+home:
+  featured_note: >-
+    Deployed services and public engineering repositories.
+  experience_note: >-
+    Ten years of backend work, much of it on long-lived Rails applications.
+  experience_link:
+    label: Full history and how I work
+    path: /about
+
+work:
+  description: >-
+    Selected projects: deployed services, public repositories and experimental
+    research.
+  intro: >-
+    Deployed developer services, public engineering repositories, and an
+    experimental research programme. Each card carries its status, and a
+    research card is not a shipped product.
+
+blog:
+  description: >-
+    Posts on backend engineering, infrastructure and systems design.
+  # Deliberately not a list of what the blog holds. The previous version was
+  # "how this site is built, and why a simulation core is partitioned into
+  # shards", which stopped being true the moment a third post was added — an
+  # enumeration of the content is a sentence that goes stale on someone else's
+  # commit. It names the register instead.
+  intro: >-
+    Short pieces on backend engineering and systems design, from the decisions
+    behind this site to holding a boundary in a long-lived Rails application.
+
+about:
+  # This note existed to apologise for four City Electrical Factors entries whose
+  # dates overlapped — a one-line explanation standing in for structure. The
+  # entry is merged now and labelled by phase, so the note explains rather than
+  # excuses. The engagement type is per phase: two contracts, then full time.
+  experience_note: >-
+    Newest first. The City Electrical Factors entry is one employer across a
+    sequence of contracts and then a full-time role, written up by phase rather
+    than as four separate appointments.
+
+contact:
+  description: >-
+    Get in touch, or find me on GitHub and LinkedIn.
+  # The availability line is the page's lede (`seeking`), so this says the one
+  # thing the lede cannot: what there is to talk about.
+  where_note: >-
+    Happy to talk through any of the projects in the work section, or the
+    production Rails upgrade work behind them.
+
+cv:
+  description: >-
+    A CV generated from this site's own content store: experience, selected
+    independent work, toolkit and education.
+  # The label on the download control, and the same string is the homepage's
+  # download link — one value, so the two cannot drift apart. A sentence
+  # explaining that this CV is generated from the site's own data used to sit
+  # here; it explained the site to the reader instead of letting them save it.
+  download_label: Download CV (PDF)
+  projects_note: >-
+    Independent development on selected projects, not employment. Full case
+    studies under Work.
+
+errors:
+  not_found: >-
+    The link may be old, or the address may have a typo in it.
+  server_error: >-
+    The error has been logged. Try again, or head back to the homepage.

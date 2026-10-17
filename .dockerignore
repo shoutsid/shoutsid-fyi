@@ -1,0 +1,27 @@
+# Build context exclusions.
+#
+# The image gets its secrets from `env_file` (read by the Docker CLI on the
+# host) and never from a file copied in, so `.env` must not be in the context
+# at all — an accidental `COPY . .` into a layer is how a tunnel token ends up
+# in an image.
+
+.git
+.gitignore
+.github
+.freebuff
+.omo
+.codegraph
+.bundle
+vendor/bundle
+
+.env
+.env.*
+!.env.example
+
+logs
+tmp
+coverage
+*.log
+
+# Reported by the container's own healthcheck, not from the host.
+bin/*.tmp

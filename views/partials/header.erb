@@ -1,0 +1,46 @@
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true">JS</span>
+      <span class="brand-text"><%= profile["name"] %></span>
+    </a>
+
+    <nav class="site-nav" aria-label="Main">
+      <ul>
+        <% nav_items.each do |item| %>
+          <% if nav_active?(item[:path]) %>
+            <li><a href="<%= item[:path] %>" aria-current="page"><%= item[:label] %></a></li>
+          <% else %>
+            <li><a href="<%= item[:path] %>"><%= item[:label] %></a></li>
+          <% end %>
+        <% end %>
+      </ul>
+    </nav>
+
+    <%# aria-pressed is set by /js/theme-boot.js on load and kept in step by
+        /js/site.js. The button works without JavaScript: the stylesheet
+        honours prefers-color-scheme when no data-theme is stored.
+
+        Two inline icons rather than one that is restyled: the button shows the
+        theme it will switch TO — a moon while the page is light, a sun while
+        it is dark — which is the convention people already expect from this
+        control, and inline SVG keeps it a single request-free element that
+        inherits the button's colour. %>
+    <button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false">
+      <svg class="theme-toggle-icon theme-toggle-icon-moon" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="1.9"
+           stroke-linecap="round" stroke-linejoin="round"
+           aria-hidden="true" focusable="false">
+        <path d="M20.6 14.9A8.7 8.7 0 0 1 9.1 3.4a8.7 8.7 0 1 0 11.5 11.5Z"/>
+      </svg>
+      <svg class="theme-toggle-icon theme-toggle-icon-sun" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="1.9"
+           stroke-linecap="round" stroke-linejoin="round"
+           aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="4.1"/>
+        <path d="M12 2.4v2.3M12 19.3v2.3M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.4 12h2.3M19.3 12h2.3M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/>
+      </svg>
+      <span class="visually-hidden">Toggle light and dark theme</span>
+    </button>
+  </div>
+</header>

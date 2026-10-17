@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 900" role="img"
+     aria-labelledby="local-coder-title" preserveAspectRatio="xMidYMid meet">
+  <title id="local-coder-title">The local coding-agent stack: a proposal path from a local model down to an isolated worktree, and a separate evaluator that decides whether the change passes</title>
+
+  <!-- The diagram carries its own palette rather than inheriting the page's:
+       an SVG in an img cannot see data-theme, so the OS preference is the only
+       signal available to it. That means a manual theme toggle will not move
+       this image, the same as the raster screenshots beside it. -->
+  <style>
+    .bg     { fill: #fffdf8; }
+    .panel  { fill: #f6f2e9; stroke: #c9bfa9; }
+    .box    { fill: #fffdf8; stroke: #8a2f0b; }
+    .box-hi { fill: #f4e4d2; stroke: #8a2f0b; }
+    .ink    { fill: #1d1a14; }
+    .muted  { fill: #5d5546; }
+    .accent { fill: #8a2f0b; }
+    .arrow  { stroke: #8a2f0b; }
+    .head   { fill: #8a2f0b; }
+    .lead   { stroke: #c9bfa9; stroke-dasharray: 2 4; }
+    .t-h    { font: 600 17px ui-sans-serif, system-ui, sans-serif; }
+    .t-l    { font: 600 15px ui-sans-serif, system-ui, sans-serif; }
+    .t-m    { font: 500 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .t-s    { font: 400 13px ui-sans-serif, system-ui, sans-serif; }
+    @media (prefers-color-scheme: dark) {
+      .bg     { fill: #1c1812; }
+      .panel  { fill: #241f17; stroke: #4a4235; }
+      .box    { fill: #241f17; stroke: #e08a5f; }
+      .box-hi { fill: #3a2a1b; stroke: #e08a5f; }
+      .ink    { fill: #ece3d0; }
+      .muted  { fill: #a99e88; }
+      .accent { fill: #e08a5f; }
+      .arrow  { stroke: #e08a5f; }
+      .head   { fill: #e08a5f; }
+      .lead   { stroke: #4a4235; }
+    }
+  </style>
+
+  <defs>
+    <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" class="head"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1160" height="900" rx="6"/>
+
+  <text class="t-h accent" x="40" y="46">A fully local coding-agent stack</text>
+  <text class="t-s muted" x="40" y="72">Role-separated agents, an isolated worktree per run, and a trusted evaluator that is not the model.</text>
+  <text class="t-s muted" x="40" y="92">Sized for a 6 GB-class GPU and 8 GiB of system memory; llama.cpp serves one qualified profile at a time.</text>
+
+  <!-- the proposal path -->
+  <rect class="box" x="60" y="120" width="600" height="64" rx="6"/>
+  <text class="t-l ink" x="360" y="148" text-anchor="middle">llama.cpp</text>
+  <text class="t-s muted" x="360" y="170" text-anchor="middle">serves one qualified local model profile</text>
+
+  <rect class="box" x="60" y="200" width="600" height="64" rx="6"/>
+  <text class="t-l ink" x="360" y="228" text-anchor="middle">Model service manager</text>
+  <text class="t-s muted" x="360" y="250" text-anchor="middle">switches physical profiles serially</text>
+
+  <rect class="box" x="60" y="280" width="600" height="64" rx="6"/>
+  <text class="t-l ink" x="360" y="308" text-anchor="middle">LiteLLM</text>
+  <text class="t-m muted" x="360" y="330" text-anchor="middle">stable routes · fast · plan · review · reason</text>
+
+  <rect class="box" x="60" y="376" width="600" height="76" rx="6"/>
+  <text class="t-l ink" x="360" y="408" text-anchor="middle">Role-separated agents (smolagents + DSPy)</text>
+  <text class="t-m muted" x="360" y="432" text-anchor="middle">explorer · planner · implementer · repairer · reviewer</text>
+
+  <rect class="box" x="60" y="472" width="600" height="64" rx="6"/>
+  <text class="t-l ink" x="360" y="500" text-anchor="middle">Native editor</text>
+  <text class="t-s muted" x="360" y="522" text-anchor="middle">validated exact replacements, on approved files only</text>
+
+  <rect class="box" x="60" y="552" width="600" height="64" rx="6"/>
+  <text class="t-l ink" x="360" y="580" text-anchor="middle">Isolated Git worktree</text>
+  <text class="t-s muted" x="360" y="602" text-anchor="middle">one per run, preserved for review</text>
+
+  <!-- the authoritative path -->
+  <rect class="box-hi" x="60" y="648" width="600" height="84" rx="6"/>
+  <text class="t-l ink" x="360" y="680" text-anchor="middle">Trusted evaluator</text>
+  <text class="t-m muted" x="360" y="704" text-anchor="middle">Black · Flake8 · pytest · protected tests · git diff --check</text>
+  <text class="t-s muted" x="360" y="724" text-anchor="middle">the checks are authoritative, not the agent's report</text>
+
+  <rect class="box" x="60" y="752" width="600" height="76" rx="6"/>
+  <text class="t-l ink" x="360" y="784" text-anchor="middle">SQLite evidence store</text>
+  <text class="t-m muted" x="360" y="808" text-anchor="middle">runs · traces · artifacts · verification · decisions</text>
+
+  <!-- flow -->
+  <line class="arrow" x1="360" y1="186" x2="360" y2="198" stroke-width="2" marker-end="url(#tip)"/>
+  <line class="arrow" x1="360" y1="266" x2="360" y2="278" stroke-width="2" marker-end="url(#tip)"/>
+  <line class="arrow" x1="360" y1="346" x2="360" y2="374" stroke-width="2" marker-end="url(#tip)"/>
+  <line class="arrow" x1="360" y1="454" x2="360" y2="470" stroke-width="2" marker-end="url(#tip)"/>
+  <line class="arrow" x1="360" y1="538" x2="360" y2="550" stroke-width="2" marker-end="url(#tip)"/>
+  <line class="arrow" x1="360" y1="618" x2="360" y2="646" stroke-width="2" marker-end="url(#tip)"/>
+  <line class="arrow" x1="360" y1="734" x2="360" y2="750" stroke-width="2" marker-end="url(#tip)"/>
+
+  <!-- annotations beside the stages whose constraints matter -->
+  <line class="lead" x1="662" y1="408" x2="700" y2="408" stroke-width="1.5"/>
+  <text class="t-s muted" x="710" y="402">Role-separated agents rather</text>
+  <text class="t-s muted" x="710" y="422">than one general prompt.</text>
+
+  <line class="lead" x1="662" y1="580" x2="700" y2="580" stroke-width="1.5"/>
+  <text class="t-s muted" x="710" y="560">The runtime never commits,</text>
+  <text class="t-s muted" x="710" y="580">merges or pushes; a run that</text>
+  <text class="t-s muted" x="710" y="600">cannot pass keeps its worktree</text>
+  <text class="t-s muted" x="710" y="620">for review.</text>
+
+  <line class="lead" x1="662" y1="686" x2="700" y2="686" stroke-width="1.5"/>
+  <text class="t-s muted" x="710" y="668">The model does not decide</text>
+  <text class="t-s muted" x="710" y="688">whether its own changes pass;</text>
+  <text class="t-s muted" x="710" y="708">prompt changes follow an</text>
+  <text class="t-s muted" x="710" y="728">audited, holdout-gated lifecycle.</text>
+
+  <text class="t-s muted" x="40" y="862">The model proposes; a separate evaluator decides. Every run, its verification and the decision that followed are written down,</text>
+  <text class="t-s muted" x="40" y="884">so what passed can be re-read rather than trusted — the same rule the rest of this site runs on.</text>
+</svg>

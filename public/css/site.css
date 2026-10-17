@@ -1,0 +1,1610 @@
+/* =========================================================================
+   shoutsid.fyi — stylesheet
+
+   One file, no build step. The server serves it straight from public/.
+
+   Design: a working engineer's desk ledger, not a SaaS landing page.
+   Warm paper, ink text, one rust accent, serif headlines with a humanist
+   sans body and mono for the small administrative labels. Hairline rules
+   and section numbers do the organising; there are no soft shadows, no
+   gradient washes, no pill buttons.
+
+   Theming works in two layers:
+     1. `[data-theme="dark"]` is set on <html> before first paint by
+        /js/theme-boot.js, from localStorage or the OS preference.
+     2. `@media (prefers-color-scheme: dark)` covers the no-JavaScript case.
+   Every colour comes from a custom property so the two themes cannot drift.
+   ========================================================================= */
+
+/* --------------------------------------------------------------- tokens */
+
+:root {
+  --bg: #faf7f0;
+  --bg-elevated: #fffdf8;
+  --bg-subtle: #f1ebdd;
+  --text: #1d1a14;
+  --text-muted: #5d5546;
+  /* Quiet, not decorative: this greys the post dates, the footer note and the
+     small mono labels, so it has to clear WCAG AA (4.5:1) as text does. It was
+     #8b8171, which measured 3.08:1 on the paper and the subtle panel — legible
+     to me, invisible to the reader who needed the contrast. The ratios are
+     asserted in spec/site_integrity_spec.rb, so the next palette edit has to
+     clear the same bar rather than be trusted. */
+  --text-faint: #6f6759;
+  --border: #ddd3bf;
+  --border-strong: #1d1a14;
+  --accent: #8a2f0b;
+  --accent-hover: #6c2307;
+  --accent-soft: #f4e4d2;
+  --accent-contrast: #fffdf8;
+  --rule: #ddd3bf;
+  --shadow: none;
+
+  --status-live: #1e6b4f;
+  --status-live-soft: #e2efe7;
+  --status-public: #6b4d0f;
+  --status-public-soft: #f2e8cf;
+  --status-research: #8a2f0b;
+  --status-research-soft: #f6e2d2;
+  --status-in-progress: #5d5546;
+  --status-in-progress-soft: #ece6d8;
+
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
+    "Times New Roman", serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
+    Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  --measure: 42rem;
+  --wrap: 62rem;
+  --radius: 3px;
+  --radius-sm: 2px;
+  --gap: 1.25rem;
+}
+
+:root[data-theme="dark"] {
+  --bg: #14110c;
+  --bg-elevated: #1c1812;
+  --bg-subtle: #241f15;
+  --text: #ece3d0;
+  --text-muted: #b3a78f;
+  /* #968b73 is the lightest grey that clears AA on all three dark surfaces
+     (4.69:1 on the subtle panel). The same value is written twice below, for
+     the no-JavaScript case; a spec asserts the two blocks agree. */
+  --text-faint: #968b73;
+  --border: #373023;
+  --border-strong: #ece3d0;
+  --accent: #e39a5b;
+  --accent-hover: #f0b57f;
+  --accent-soft: #2b2114;
+  --accent-contrast: #14110c;
+  --rule: #373023;
+  --shadow: none;
+
+  --status-live: #7fd6ae;
+  --status-live-soft: #13281f;
+  --status-public: #d9b45c;
+  --status-public-soft: #2a2211;
+  --status-research: #e89a67;
+  --status-research-soft: #2c1d10;
+  --status-in-progress: #b3a78f;
+  --status-in-progress-soft: #221e15;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14110c;
+    --bg-elevated: #1c1812;
+    --bg-subtle: #241f15;
+    --text: #ece3d0;
+    --text-muted: #b3a78f;
+    --text-faint: #968b73;
+    --border: #373023;
+    --border-strong: #ece3d0;
+    --accent: #e39a5b;
+    --accent-hover: #f0b57f;
+    --accent-soft: #2b2114;
+    --accent-contrast: #14110c;
+    --rule: #373023;
+    --shadow: none;
+
+    --status-live: #7fd6ae;
+    --status-live-soft: #13281f;
+    --status-public: #d9b45c;
+    --status-public-soft: #2a2211;
+    --status-research: #e89a67;
+    --status-research-soft: #2c1d10;
+    --status-in-progress: #b3a78f;
+    --status-in-progress-soft: #221e15;
+  }
+}
+
+/* ---------------------------------------------------------------- reset */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  /* faint paper grain, pure CSS, both themes */
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--text) 4%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+}
+
+img,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  line-height: 1.12;
+  margin: 0 0 0.6rem;
+  letter-spacing: 0;
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+/* The headline is the largest thing on the page and should read as such, but
+   3.6rem was too big for a fold that now runs the full 928px column: the
+   homepage headline became three lines of ~900px, which is a wall rather than a
+   sentence. 3rem keeps the display hierarchy and the same three lines. */
+h1 {
+  font-size: clamp(2rem, 1.4rem + 2.6vw, 3rem);
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: clamp(1.5rem, 1.25rem + 1vw, 1.9rem);
+}
+
+h3 {
+  font-size: 1.15rem;
+}
+
+p {
+  margin: 0 0 1rem;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+}
+
+a:hover {
+  color: var(--accent-hover);
+  text-decoration-thickness: 2px;
+}
+
+ul,
+ol {
+  margin: 0 0 1rem;
+  padding-left: 1.15rem;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  margin: 2rem 0;
+}
+
+code,
+pre {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+
+code {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.1em 0.35em;
+}
+
+pre {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+blockquote {
+  margin: 1.5rem 0;
+  padding-left: 1rem;
+  border-left: 2px solid var(--accent);
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.08em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* --------------------------------------------------------------- layout */
+
+.wrap {
+  width: 100%;
+  max-width: var(--wrap);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 2rem);
+}
+
+main.wrap {
+  flex: 1 0 auto;
+  padding-block: clamp(1.5rem, 4vw, 3rem);
+  counter-reset: section;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--text);
+  color: var(--bg);
+  padding: 0.6rem 1rem;
+  z-index: 100;
+}
+
+.skip-link:focus {
+  left: 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------- header */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: saturate(140%) blur(10px);
+  border-bottom: 2px solid var(--border-strong);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 3.75rem;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  text-decoration: none;
+  color: var(--text);
+  margin-right: auto;
+}
+
+.brand-mark {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 1.15rem;
+  line-height: 1;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 1px;
+}
+
+.brand-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.site-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.site-nav a {
+  display: block;
+  padding: 0.4rem 0.65rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.93rem;
+  font-weight: 550;
+  border-bottom: 2px solid transparent;
+}
+
+.site-nav a:hover {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.site-nav a[aria-current="page"] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.theme-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.theme-toggle:active {
+  transform: scale(0.96);
+}
+
+/* Inline SVG, one icon per theme. The button shows the theme it will switch
+   TO — a moon while the page is light, a sun while it is dark — which is what
+   people expect of this control.
+
+   Both icons ship in the markup and CSS decides which is visible, so the
+   correct one is shown at first paint and with no JavaScript at all; the
+   prefers-color-scheme block below is what covers the no-JS case. */
+.theme-toggle-icon {
+  display: block;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.theme-toggle-icon-sun {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-toggle-icon-moon {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-toggle-icon-sun {
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-toggle-icon-moon {
+    display: none;
+  }
+
+  :root:not([data-theme="light"]) .theme-toggle-icon-sun {
+    display: block;
+  }
+}
+
+/* ---------------------------------------------------------------- hero */
+
+/* The fold runs the full width of the content column, the same as the sections
+   below it, so its rule lines up with the section rules and its text gets the
+   same room as the project cards.
+
+   It had been capped twice over: at 46rem, then at `var(--measure)` to match the
+   section *headings* — which was the wrong reference. A heading is a couple of
+   words and needs no room; the column is what the page's width actually is. The
+   result was a fold that visibly stopped short of everything under it. */
+.hero {
+  /* The vertical rhythm comes from `.page-head` too. The hero used to add its
+     own top padding on top of `main.wrap`'s and then only 0.5rem below, so the
+     fold started lower here than on /about and /work and the first section came
+     up short. Same spacing as every other page's head now. */
+  padding-block: 0 clamp(1rem, 3vw, 1.5rem);
+  border-bottom: 2px solid var(--border-strong);
+  margin-bottom: clamp(1rem, 3vw, 1.75rem);
+}
+
+.dateline {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0 0 1.1rem;
+}
+
+.dateline-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--status-live);
+  flex: none;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 0.9rem;
+  text-transform: none;
+}
+
+.eyebrow-year {
+  font-weight: 500;
+}
+
+.lede {
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 1.05rem + 0.5vw, 1.35rem);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.lede em,
+.hero h1 em {
+  color: var(--accent);
+  font-style: italic;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.6rem 1.25rem;
+  list-style: none;
+  margin: 1.6rem 0 0;
+  padding: 0;
+}
+
+/* The pitch, in the hero. It was previously only in the closing call to
+   action, six sections below the projects and the blog — which is a long way
+   down the page for the one line that says what the engineer wants next. */
+.hero-seeking {
+  margin: 1.5rem 0 0;
+  padding: 0.9rem 1.15rem;
+  border-left: 3px solid var(--accent);
+  background: var(--bg-elevated);
+  font-size: 0.96rem;
+  color: var(--text-muted);
+}
+
+.hero-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0;
+  list-style: none;
+  margin: 1.3rem 0 0;
+  padding: 1rem 0 0;
+  border-top: 1px solid var(--rule);
+  font-size: 0.9rem;
+  font-family: var(--font-mono);
+}
+
+.hero-links li + li::before {
+  content: "·";
+  color: var(--text-faint);
+  margin: 0 0.7rem;
+}
+
+.hero-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.hero-links a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.button {
+  display: inline-block;
+  padding: 0.5rem 0;
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: 0;
+  background: none;
+}
+
+.button:hover {
+  color: var(--accent);
+  text-decoration-thickness: 2px;
+}
+
+.button-primary {
+  background: var(--text);
+  color: var(--bg);
+  text-decoration: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius);
+}
+
+.button-primary:hover {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  text-decoration: none;
+}
+
+/* ------------------------------------------------------------- sections */
+
+.section {
+  padding-block: clamp(1.75rem, 4vw, 2.5rem);
+  border-bottom: 1px solid var(--rule);
+  counter-increment: section;
+}
+
+.section-head {
+  margin-bottom: 1.4rem;
+  max-width: var(--measure);
+}
+
+.section-head h2 {
+  margin-bottom: 0.35rem;
+}
+
+.section-head h2::before {
+  content: "0" counter(section);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--accent);
+  vertical-align: super;
+  margin-right: 0.6rem;
+  letter-spacing: 0.05em;
+}
+
+.section-note {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin: 0;
+  font-style: italic;
+  font-family: var(--font-display);
+}
+
+/* Research is set apart the print way: a ticket stub with a perforated
+   edge, not a pastel gradient wash. */
+.section-research {
+  background: transparent;
+  border: 1px dashed var(--status-research);
+  border-radius: var(--radius);
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  margin-top: clamp(1.75rem, 4vw, 2.5rem);
+}
+
+/* Same column as `.hero`, so every page's fold is the same width. */
+.page-head {
+  padding-bottom: clamp(1rem, 3vw, 1.5rem);
+  border-bottom: 2px solid var(--border-strong);
+  margin-bottom: clamp(1rem, 3vw, 1.75rem);
+}
+
+.page-head .lede {
+  margin-bottom: 0;
+}
+
+.back-link {
+  margin: 0 0 0.75rem;
+  font-size: 0.88rem;
+  font-family: var(--font-mono);
+}
+
+.back-link a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.back-link a:hover {
+  color: var(--accent);
+}
+
+/* ---------------------------------------------------------------- cards */
+
+.card-grid {
+  display: grid;
+  gap: 0;
+  grid-template-columns: 1fr;
+  border-top: 1px solid var(--rule);
+  counter-reset: work;
+}
+
+.card-grid-tight {
+  border-top: 1px solid var(--rule);
+}
+
+.card {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 1.3rem 0 1.3rem 2.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  position: relative;
+  counter-increment: work;
+}
+
+/* ledger number down the left margin */
+.card::before {
+  content: "0" counter(work);
+  position: absolute;
+  left: 0.5rem;
+  top: 1.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+
+.card:has(.badge-live)::after {
+  background: var(--status-live);
+}
+
+.card:has(.badge-public)::after {
+  background: var(--status-public);
+}
+
+.card:has(.badge-research)::after {
+  background: var(--status-research);
+}
+
+.card:has(.badge-in-progress)::after {
+  background: var(--text-faint);
+}
+
+/* principle cards are a simple two-up ledger, unnumbered — but they keep
+   the spine rule, so they need room for the text to clear it */
+.card-grid-tight .card::before {
+  content: none;
+}
+
+.card-grid-tight .card {
+  padding-left: 1rem;
+}
+
+.card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.card-title a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.card-title a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.card-tagline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--text-muted);
+  font-size: 1.02rem;
+}
+
+.card-summary {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.94rem;
+  max-width: 60ch;
+}
+
+.card-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0;
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  font-size: 0.88rem;
+  font-family: var(--font-mono);
+}
+
+.card-links li + li::before {
+  content: "/";
+  color: var(--text-faint);
+  margin: 0 0.6rem;
+}
+
+.card-links a {
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.card-links a:hover {
+  text-decoration: underline;
+}
+
+.card-link-primary {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.principle-card h3 {
+  margin-bottom: 0.35rem;
+  font-size: 1.08rem;
+}
+
+.principle-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.94rem;
+}
+
+/* --------------------------------------------------------------- badges */
+
+/* Stamped labels, not SaaS pills: small caps, dashed rule, tinted paper. */
+.badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border: 1px dashed currentColor;
+}
+
+.badge-live {
+  color: var(--status-live);
+  background: var(--status-live-soft);
+}
+
+.badge-public {
+  color: var(--status-public);
+  background: var(--status-public-soft);
+}
+
+.badge-research {
+  color: var(--status-research);
+  background: var(--status-research-soft);
+}
+
+.badge-in-progress {
+  color: var(--status-in-progress);
+  background: var(--status-in-progress-soft);
+}
+
+/* ---------------------------------------------------------------- chips */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chip {
+  font-size: 0.8rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+}
+
+.chip + .chip::before {
+  content: ", ";
+  white-space: pre;
+}
+
+/* --------------------------------------------------------- roles, lists */
+
+.role {
+  max-width: var(--measure);
+  margin-bottom: 1.75rem;
+  padding-left: 1.25rem;
+  border-left: 2px solid var(--border);
+}
+
+.role-head {
+  margin-bottom: 0.5rem;
+}
+
+.role-title {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.role-meta {
+  margin: 0.15rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.75rem;
+  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.role-company {
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+
+.role-period::before,
+.role-location::before {
+  content: "· ";
+  color: var(--text-faint);
+}
+
+/* The optional link out of a role entry — the write-up behind the work, or the
+   work section from the break. Set small and mono like the meta line, so it
+   reads as a pointer to the evidence rather than as another claim beside it.
+   Shared by /about and /cv, which render the same roles. */
+.role-link {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  font-family: var(--font-mono);
+}
+
+.highlights {
+  margin: 0.6rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--text-muted);
+  list-style: square;
+}
+
+.highlights li {
+  margin-bottom: 0.3rem;
+}
+
+.highlights li::marker {
+  color: var(--accent);
+}
+
+.highlights-lg li {
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.project-list,
+.post-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--rule);
+}
+
+.project-row,
+.post-row {
+  padding: 1.1rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.project-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.project-row h3,
+.post-row h2,
+.post-row h3 {
+  margin: 0 0 0.2rem;
+  font-size: 1.1rem;
+}
+
+.project-row h3 a,
+.post-row a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.project-row h3 a:hover,
+.post-row a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.project-row p,
+.post-summary {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.94rem;
+}
+
+.post-row h2 a,
+.post-row h3 a {
+  font-family: var(--font-display);
+}
+
+.post-meta {
+  margin: 0 0 0.4rem;
+  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.post-summary {
+  max-width: var(--measure);
+}
+
+.post-list-lg .post-row {
+  padding: 1.5rem 0;
+}
+
+.post-list-lg .post-row h2 {
+  font-size: 1.5rem;
+}
+
+.feed-link {
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  font-family: var(--font-mono);
+}
+
+.plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.plain-list li {
+  border-bottom: 1px dotted var(--border);
+  padding-bottom: 0.6rem;
+}
+
+.plain-list .muted {
+  margin-left: 0.5rem;
+  font-size: 0.88rem;
+  font-family: var(--font-mono);
+}
+
+.empty-state {
+  color: var(--text-muted);
+  font-style: italic;
+  font-family: var(--font-display);
+}
+
+/* ------------------------------------------------------------- timeline */
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.timeline-item {
+  position: relative;
+  padding-left: 1.75rem;
+  padding-bottom: 1.75rem;
+  border-left: 1px solid var(--border);
+}
+
+.timeline-item:last-child {
+  border-left-color: transparent;
+  padding-bottom: 0;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -0.3rem;
+  top: 0.45rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 0;
+  transform: rotate(45deg);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+}
+
+.timeline-item-current .timeline-marker {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.timeline-item-current .role-title::after {
+  content: " — now";
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.timeline-body {
+  max-width: var(--measure);
+}
+
+/* --------------------------------------------------------------- skills */
+
+.skill-groups {
+  display: grid;
+  gap: 1.25rem 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+}
+
+.skill-group h3 {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.4rem;
+}
+
+/* ---------------------------------------------------------- case study */
+
+.case-study .prose {
+  max-width: var(--measure);
+}
+
+.case-section {
+  margin-top: 2rem;
+}
+
+.case-section h2 {
+  font-size: 1.25rem;
+  margin-bottom: 0.65rem;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.4rem;
+}
+
+.callout {
+  margin-top: 2rem;
+  max-width: var(--measure);
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  padding: 1rem 1.15rem;
+}
+
+.callout p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.94rem;
+}
+
+.callout-title {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  margin-bottom: 0.4rem;
+}
+
+.callout-research {
+  border-top-color: var(--status-research);
+}
+
+.callout-live {
+  border-top-color: var(--status-live);
+}
+
+.callout-in-progress {
+  border-top-color: var(--status-in-progress);
+}
+
+.link-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+}
+
+/* A captured page on a project page. Framed like a plate in a ledger rather
+   than floated in a browser chrome mock-up, which would be furniture the
+   screenshot does not need. */
+.case-figure {
+  margin: 1.5rem 0 0;
+  max-width: var(--measure);
+}
+
+.case-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+
+.case-figure figcaption {
+  margin-top: 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+
+/* ---------------------------------------------------------------- prose */
+
+.prose {
+  max-width: var(--measure);
+  font-size: 1.02rem;
+}
+
+.prose h2 {
+  margin-top: 2rem;
+  font-size: 1.4rem;
+}
+
+.prose h3 {
+  margin-top: 1.5rem;
+  font-size: 1.12rem;
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 1.25rem;
+  list-style: square;
+}
+
+.prose ul ::marker,
+.prose ol ::marker {
+  color: var(--accent);
+}
+
+.prose li {
+  margin-bottom: 0.35rem;
+}
+
+.prose p:first-of-type::first-letter {
+  font-family: var(--font-display);
+  font-size: 1.4em;
+  font-weight: 700;
+}
+
+/* -------------------------------------------------------------- contact */
+
+.contact-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--rule);
+  grid-template-columns: 1fr;
+}
+
+.contact-item a {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 1rem 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  background: none;
+  text-decoration: none;
+  box-shadow: none;
+}
+
+.contact-item a:hover {
+  border-color: var(--rule);
+}
+
+.contact-item a:hover .contact-label {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.contact-label {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.contact-value {
+  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+/* ------------------------------------------------------------------ cta */
+
+.cta {
+  margin-top: 2.5rem;
+  padding: clamp(1.5rem, 4vw, 2.25rem) 0 0;
+  border: 0;
+  border-top: 2px solid var(--border-strong);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  max-width: var(--measure);
+}
+
+.cta h2 {
+  font-size: 1.6rem;
+  font-style: italic;
+}
+
+.cta p {
+  color: var(--text-muted);
+  margin-bottom: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+/* ------------------------------------------------------------------ cv */
+
+.cv-head {
+  border-bottom: 2px solid var(--border-strong);
+  padding-bottom: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.cv-head h1 {
+  font-size: clamp(2rem, 1.5rem + 2.5vw, 2.9rem);
+}
+
+.cv-role {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.cv-contact {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.cv-contact a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.cv-contact a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* The CV download control: an icon and a label, no prose. A button because it
+   performs an action — the browser's print dialog, which is where "save as
+   PDF" lives — rather than going somewhere. */
+.cv-download {
+  margin: 1.1rem 0 0;
+}
+
+/* Filled rather than outlined, so a reader does not have to work out whether
+   this page can be saved: it is the one control in the header, and it reads as
+   the action it is. */
+.print-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.print-button:hover {
+  border-color: var(--accent-hover);
+  background: var(--accent-hover);
+  color: var(--accent-contrast);
+}
+
+.print-button-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: none;
+}
+
+.cv-section {
+  padding-block: 1.5rem;
+  border-bottom: 1px solid var(--rule);
+  max-width: var(--measure);
+}
+
+.cv-section h2 {
+  font-size: 1.3rem;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.cv-role-block {
+  margin-bottom: 1.4rem;
+}
+
+.cv-role-block:last-child {
+  margin-bottom: 0;
+}
+
+.cv-role-block h3 {
+  margin-bottom: 0.15rem;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.cv-skills {
+  margin: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.cv-skills dt {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.cv-skills dd {
+  margin: 0 0 0.2rem;
+}
+
+/* ---------------------------------------------------------------- print */
+
+@media print {
+  body {
+    background: #fff;
+    background-image: none;
+    color: #000;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+
+  .site-header,
+  .site-footer,
+  .skip-link,
+  .no-print {
+    display: none !important;
+  }
+
+  main.wrap {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  a {
+    color: #000;
+    text-decoration: none;
+  }
+
+  .cv-contact a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #444;
+  }
+
+  .cv-head,
+  .cv-section {
+    border-color: #999;
+  }
+
+  .badge {
+    border-color: #666;
+    color: #000;
+    background: none;
+  }
+}
+
+/* --------------------------------------------------------------- footer */
+
+.site-footer {
+  border-top: 2px solid var(--border-strong);
+  margin-top: 2rem;
+  padding-block: 1.5rem 2rem;
+  background: none;
+  font-size: 0.88rem;
+}
+
+.footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  align-items: baseline;
+}
+
+.footer-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-style: italic;
+}
+
+.footer-name {
+  font-weight: 700;
+  font-style: normal;
+  color: var(--text);
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.footer-links li + li::before {
+  content: "·";
+  color: var(--text-faint);
+  margin: 0 0.6rem;
+}
+
+.footer-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.footer-links a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.footer-meta {
+  flex-basis: 100%;
+  margin: 0.75rem 0 0;
+  padding-top: 0.75rem;
+  border-top: 1px dotted var(--border);
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+}
+
+/* ---------------------------------------------------------- small screens */
+
+@media (min-width: 44rem) {
+  .card-grid-tight {
+    grid-template-columns: 1fr 1fr;
+    gap: 0 2rem;
+  }
+
+  .contact-list {
+    grid-template-columns: 1fr 1fr;
+    gap: 0 2rem;
+  }
+}
+
+@media (max-width: 34rem) {
+  .header-inner {
+    min-height: 3.5rem;
+  }
+
+  .brand-text {
+    display: none;
+  }
+
+  .site-nav a {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.88rem;
+  }
+
+  .project-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+
+  .card {
+    padding-left: 2.25rem;
+  }
+}

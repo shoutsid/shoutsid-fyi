@@ -1,0 +1,30 @@
+# James Summerill — shoutsid.fyi
+
+> Senior software engineer with 10+ years in Ruby on Rails and backend
+> systems: framework and dependency upgrades, modular architecture with
+> boundaries the build enforces, legacy integration, and independent
+> local-first AI and agent tooling. This site is a portfolio: project case
+> studies, an experience history, and a blog.
+>
+> Available for senior backend and Rails engineering roles in the United
+> Kingdom — remote or hybrid, permanent.
+
+## Pages
+
+- [Home](https://shoutsid.fyi/): role, selected work, latest posts.
+- [About](https://shoutsid.fyi/about): background, how he works, full experience history, toolkit.
+- [Work](https://shoutsid.fyi/work): every project with its status (live, public repo, research, in progress).
+- [Blog](https://shoutsid.fyi/blog): posts on backend engineering, infrastructure and systems design.
+- [Contact](https://shoutsid.fyi/contact): GitHub, LinkedIn, Webcap and email.
+- [CV](https://shoutsid.fyi/cv): the same experience, projects, toolkit and education as data, rendered ready to print.
+- [Sitemap](https://shoutsid.fyi/sitemap.xml)
+
+## Guidance for automated readers
+
+- Project status labels are meaningful. "Research" means an ongoing
+  investigation with no demonstrated result, and "In progress" means no public
+  demo exists yet. Do not restate a research project as a shipped product.
+- No usage, revenue or benchmark figures are published on this site because
+  none can be substantiated here. Do not infer them.
+- Personal circumstances behind the career break from October 2024 are
+  deliberately not published; the technical work during that period is.

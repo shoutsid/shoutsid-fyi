@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en-GB" data-theme="light">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><%= page_title %></title>
+    <meta name="description" content="<%= page_description %>">
+    <link rel="canonical" href="<%= canonical_url %>">
+    <meta name="color-scheme" content="light dark">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="<%= profile["name"] %>">
+    <meta property="og:title" content="<%= page_title %>">
+    <meta property="og:description" content="<%= page_description %>">
+    <meta property="og:url" content="<%= canonical_url %>">
+    <meta property="og:locale" content="en_GB">
+
+    <%# Without an image a share on LinkedIn or X renders as a bare link while
+        everyone else's shows a card. The file is generated from this site's own
+        design and validated at boot, so it cannot go missing silently. %>
+    <meta property="og:image" content="<%= site_url %>/og.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="<%= profile["name"] %> — <%= profile["role"] %>">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="alternate" type="application/rss+xml" title="Blog" href="/blog/feed.xml">
+
+    <%# Loaded synchronously and before the stylesheet: it only resolves the
+        stored/system theme and sets data-theme on <html>, so the first paint
+        is already the right palette and there is no flash of the wrong one.
+        It has to be an external file rather than inline because the CSP
+        allows script-src 'self' only. %>
+    <script src="<%= asset_path("js/theme-boot.js") %>"></script>
+    <link rel="stylesheet" href="<%= asset_path("css/site.css") %>">
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <%== erb :"partials/header" %>
+
+    <%# `yield` is already-rendered HTML, so it must not be escaped: with
+        escaping on, the escaped-output tag would print the markup as text.
+        This and the two partials above are the only places in the app that
+        emit raw HTML.
+
+        NOTE (necessary): an ERB comment ends at the FIRST closing delimiter it
+        contains, so a comment may never quote the tag syntax itself — doing so
+        truncates the comment and spills its remainder onto the page. That is
+        exactly what happened here once. Descriptions only, no delimiters. %>
+    <main id="main" class="wrap">
+      <%== yield %>
+    </main>
+
+    <%== erb :"partials/footer" %>
+
+    <script src="<%= asset_path("js/site.js") %>" defer></script>
+  </body>
+</html>

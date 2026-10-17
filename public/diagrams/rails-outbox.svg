@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 740" role="img"
+     aria-labelledby="rails-outbox-title" preserveAspectRatio="xMidYMid meet">
+  <title id="rails-outbox-title">Domain boundaries and the transactional outbox path in the Rails modular monolith</title>
+
+  <!-- The diagram carries its own palette rather than inheriting the page's:
+       an SVG in an img cannot see data-theme, so the OS preference is the only
+       signal available to it. That means a manual theme toggle will not move
+       this image, which is also true of the raster screenshot beside it. -->
+  <style>
+    .bg     { fill: #fffdf8; }
+    .panel  { fill: #f6f2e9; stroke: #c9bfa9; }
+    .box    { fill: #fffdf8; stroke: #8a2f0b; }
+    .box-hi { fill: #f4e4d2; stroke: #8a2f0b; }
+    .ink    { fill: #1d1a14; }
+    .muted  { fill: #5d5546; }
+    .accent { fill: #8a2f0b; }
+    .arrow  { stroke: #8a2f0b; }
+    .head   { fill: #8a2f0b; }
+    .t-h    { font: 600 15px ui-sans-serif, system-ui, sans-serif; }
+    .t-l    { font: 600 14px ui-sans-serif, system-ui, sans-serif; }
+    .t-m    { font: 500 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .t-s    { font: 400 13px ui-sans-serif, system-ui, sans-serif; }
+    @media (prefers-color-scheme: dark) {
+      .bg     { fill: #1c1812; }
+      .panel  { fill: #241f17; stroke: #4a4235; }
+      .box    { fill: #241f17; stroke: #e08a5f; }
+      .box-hi { fill: #3a2a1b; stroke: #e08a5f; }
+      .ink    { fill: #ece3d0; }
+      .muted  { fill: #a99e88; }
+      .accent { fill: #e08a5f; }
+      .arrow  { stroke: #e08a5f; }
+      .head   { fill: #e08a5f; }
+    }
+  </style>
+
+  <defs>
+    <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" class="head"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1160" height="740" rx="6"/>
+
+  <!-- four domains, four databases -->
+  <rect class="box" x="40"  y="36" width="250" height="64" rx="6"/>
+  <text class="t-l ink" x="165" y="64" text-anchor="middle">Orders</text>
+  <text class="t-m muted" x="165" y="84" text-anchor="middle">orders_db</text>
+
+  <rect class="box" x="324" y="36" width="250" height="64" rx="6"/>
+  <text class="t-l ink" x="449" y="64" text-anchor="middle">Billing</text>
+  <text class="t-m muted" x="449" y="84" text-anchor="middle">billing_db</text>
+
+  <rect class="box" x="608" y="36" width="250" height="64" rx="6"/>
+  <text class="t-l ink" x="733" y="64" text-anchor="middle">Inventory</text>
+  <text class="t-m muted" x="733" y="84" text-anchor="middle">inventory_db</text>
+
+  <rect class="box" x="892" y="36" width="250" height="64" rx="6"/>
+  <text class="t-l ink" x="1017" y="64" text-anchor="middle">Notifications</text>
+  <text class="t-m muted" x="1017" y="84" text-anchor="middle">notifications_db</text>
+
+  <text class="t-s muted" x="40" y="128">Packwerk enforces the boundary: no domain reads another's tables.</text>
+
+  <line class="arrow" x1="591" y1="140" x2="591" y2="162" stroke-width="2" marker-end="url(#tip)"/>
+
+  <!-- one transaction -->
+  <rect class="panel" x="190" y="166" width="780" height="152" rx="8"/>
+  <text class="t-h accent" x="214" y="196">One transaction, inside one domain</text>
+
+  <rect class="box" x="216" y="216" width="206" height="78" rx="6"/>
+  <text class="t-l ink" x="319" y="248" text-anchor="middle">Domain service</text>
+  <text class="t-s muted" x="319" y="272" text-anchor="middle">Rails, Packwerk-checked</text>
+
+  <line class="arrow" x1="426" y1="255" x2="470" y2="255" stroke-width="2" marker-end="url(#tip)"/>
+  <text class="t-m accent" x="448" y="243" text-anchor="middle">one commit</text>
+
+  <rect class="box" x="478" y="212" width="212" height="42" rx="6"/>
+  <text class="t-l ink" x="584" y="239" text-anchor="middle">business tables</text>
+
+  <rect class="box-hi" x="478" y="262" width="212" height="42" rx="6"/>
+  <text class="t-l ink" x="584" y="289" text-anchor="middle">outbox table</text>
+
+  <text class="t-s muted" x="714" y="243">The change and the</text>
+  <text class="t-s muted" x="714" y="263">event it implies are</text>
+  <text class="t-s muted" x="714" y="283">written by the same</text>
+  <text class="t-s muted" x="714" y="303">commit.</text>
+
+  <line class="arrow" x1="591" y1="318" x2="591" y2="352" stroke-width="2" marker-end="url(#tip)"/>
+
+  <!-- kafka connect -->
+  <rect class="box" x="420" y="356" width="360" height="68" rx="6"/>
+  <text class="t-l ink" x="600" y="386" text-anchor="middle">Kafka Connect</text>
+  <text class="t-s muted" x="600" y="408" text-anchor="middle">tails the outbox log, not the application</text>
+
+  <line class="arrow" x1="600" y1="424" x2="600" y2="458" stroke-width="2" marker-end="url(#tip)"/>
+
+  <!-- kafka -->
+  <rect class="box" x="420" y="462" width="360" height="68" rx="6"/>
+  <text class="t-l ink" x="600" y="492" text-anchor="middle">Kafka topic</text>
+  <text class="t-m muted" x="600" y="514" text-anchor="middle">orders.events</text>
+
+  <line class="arrow" x1="600" y1="530" x2="600" y2="564" stroke-width="2" marker-end="url(#tip)"/>
+
+  <!-- consumers -->
+  <rect class="box" x="300" y="568" width="600" height="68" rx="6"/>
+  <text class="t-l ink" x="600" y="598" text-anchor="middle">The other three domains consume it</text>
+  <text class="t-s muted" x="600" y="620" text-anchor="middle">the saga is choreographed by these events; no orchestrator</text>
+
+  <text class="t-s muted" x="40" y="678">The outbox row is committed with the business change, so a crash between the write and the publish cannot lose the event.</text>
+  <text class="t-s muted" x="40" y="700">A published event is therefore at-least-once, and each consumer is responsible for being idempotent.</text>
+</svg>

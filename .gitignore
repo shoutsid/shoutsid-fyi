@@ -1,0 +1,28 @@
+# Secrets. `.env` holds the Cloudflare tunnel token and is written by
+# bin/cf-setup.sh; it must never be committed. `.env.example` is the template
+# and is tracked.
+.env
+.env.local
+
+# Local tooling
+.bundle/
+vendor/bundle/
+node_modules/
+
+# The digest of the dev image's build inputs — Dockerfile, Gemfile,
+# Gemfile.lock, .dockerignore — written by bin/site check|test|lint. Source is
+# deliberately not part of it: the working tree is mounted at run time, so an
+# edit cannot invalidate the image. Local to this machine, by definition.
+.dev-image-digest
+
+# Runtime output
+logs/
+tmp/
+coverage/
+*.log
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

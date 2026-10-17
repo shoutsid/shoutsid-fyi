@@ -1,0 +1,120 @@
+# Professional history, newest first. Rendered by /about and /cv.
+#
+# The City Electrical Factors work used to be four entries whose dates
+# interleaved with clixifix, with the overlap explained in a one-line note on
+# the page. That was a structure problem papered over with prose: it is one
+# employer across a sequence of engagements, so it is one entry with the phases
+# written up in order. The sequence is still the point — the point just has a
+# shape now.
+#
+# The engagement type is per phase, not per entry: the first two were contracts,
+# and the third was full time after returning. Calling the whole entry a contract
+# would be as wrong as calling all of it employment.
+#
+# `link` is optional and takes {label, path}, mirroring home.experience_link in
+# config/pages.yml: a path on this site, not a URL, because it is a page the
+# reader can open next rather than a claim about somewhere else.
+
+roles:
+  - title: Career break & independent technical projects
+    company: Independent
+    period: October 2024 — present
+    location: County Durham, United Kingdom
+    summary: >
+      Took a career break for personal reasons and continued independent
+      development on selected projects: deployed developer tools, local-first
+      AI and agent infrastructure, and experimental systems research.
+    # Deliberately two lines. The project list used to be repeated here, which
+    # put four projects in front of the Rails history for a reader deciding
+    # whether to keep reading — and made /about disagree with /work about what
+    # had shipped. Each project carries its own status under Work now.
+    link:
+      label: Selected independent work
+      path: /work
+    highlights: []
+    current: true
+    personal: true
+
+  - title: Ruby on Rails Engineer → Senior Back End Developer
+    company: City Electrical Factors
+    period: October 2019 — October 2024 (contract, then full time)
+    location: County Durham, United Kingdom
+    summary: >
+      Maintained and evolved the primary cef.co.uk system — first on contracts
+      that upgraded it off long-unsupported Rails versions, then full time
+      owning cross-cutting technical health and helping steer engineering
+      practice toward TDD, CI/CD and clearer domain boundaries.
+    link:
+      label: The upgrade path, written up on the blog
+      path: /blog/upgrading-a-production-rails-application
+    highlights:
+      - "Phase 1 · Rails 3.2 → 4.2, October 2019 — May 2020 (contract): upgraded a production retail application off a framework version that had been out of support for years, released in steps rather than as one cutover."
+      - "Phase 2 · Rails 4.2 → 5.2, December 2020 — March 2021 (contract): the next hop, made smaller by having cleared the previous one's deprecations rather than deferring them."
+      - "Phase 3 · March 2021 — October 2024 (full time): returned to own cross-cutting upgrades across Rails versions, gems and dependencies."
+      - Championed Docker containerisation and led the Bitbucket Pipelines implementation, so a green build meant a runnable environment.
+      - Built and maintained API integrations bridging modern applications and legacy Sybase systems.
+      - Advocated a modular-monolith direction using Packwerk and domain boundaries, without prematurely splitting the system into services.
+      - Promoted TDD and CI/CD, and shared approaches and emerging practices with the wider team.
+
+  - title: Senior Developer / Lead Developer
+    company: clixifix
+    period: January — October 2019 / May — October 2020
+    location: United Kingdom
+    summary: >
+      Led and supported Ruby on Rails developers in a lean team, providing
+      hands-on guidance, feedback and technical direction.
+    highlights:
+      - Analysed the existing platform and documented recommendations, supporting continuity across development work.
+      - Contributed to hiring, collaborative working practices and iterative delivery.
+
+  - title: Ruby on Rails Software Engineer
+    company: Imfuna
+    period: October 2016 — February 2018
+    location: Remote
+    summary: >
+      Maintained and extended the Rails platform and collaborated remotely with
+      colleagues across functions.
+    highlights:
+      - Worked with the Transcription Manager on an AI transcription service, reducing validation time for human reviewers and the cost of running it.
+
+  # Four roles in three years, each a couple of lines. Kept as four full entries
+  # they made the history ten long and buried the Rails work a reader is
+  # scanning for, so they are one entry with the roles and dates intact.
+  - title: Earlier roles
+    company: Various
+    period: June 2013 — December 2015
+    location: United Kingdom
+    summary: >
+      Four roles across agencies and product companies, in Ruby and the web
+      stacks of the time.
+    highlights:
+      - "Evvnt · Ruby Developer, April — December 2015: maintained the Ruby/Heroku website and infrastructure, and developed Ruby, Watir and Sidekiq automation that reduced manual work."
+      - "Arnold Clark · Ruby / Web Developer, July 2014 — March 2015: worked across legacy systems and new features, including Worldpay, AWS, Rails and Swift, and built an internal office dashboard on Raspberry Pi, Dashing and Debian."
+      - "Appkick · Lead Backend Engineer, February — November 2014: led backend development, migrated the core application from Node.js to Ruby, and introduced CI practices and improved remote-team delivery workflows."
+      - "Green Gorilla Apps · Full Stack Web Developer, June 2013 — May 2014: maintained and extended existing web applications and fixed defects, following Git-based review practices."
+
+education:
+  - qualification: BTEC National for IT Practitioners, Level 3
+    institution: New College Durham
+    period: 2008 — 2010
+
+# Grouped by where the skill was used, so the list reads as a practice rather
+# than a keyword wall. The frontend/adjacent group is deliberately short: this
+# is a backend portfolio.
+#
+# Nothing here is aspirational. Rails 7/8, Hotwire, Solid Queue and Kamal are
+# absent on purpose: the public Rails work stops at 5.2 and the return to the
+# newer versions is being made now, so claiming them here would be the one thing
+# this site's rules exist to prevent — a line an interviewer can unpick in a
+# single question.
+skills:
+  - group: Languages & frameworks
+    items: [Ruby, Ruby on Rails, Python, SQL, JavaScript, TypeScript]
+  - group: Architecture & design
+    items: [Modular monoliths, Domain-driven design, Packwerk, Domain boundaries, Transactional outbox, Saga patterns, Legacy integration]
+  - group: Delivery & quality
+    items: [TDD, CI/CD, Bitbucket Pipelines, Docker, Dependency & framework upgrades, Code review, Developer mentoring]
+  - group: Data & platforms
+    items: [PostgreSQL, MySQL, Sybase, Kafka, Heroku, AWS, Linux]
+  - group: AI & systems
+    items: [Local LLM inference, Agent systems, Model routing, Evaluation & verification harnesses, PyTorch]

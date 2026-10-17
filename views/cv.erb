@@ -1,0 +1,101 @@
+<article class="cv">
+  <header class="cv-head">
+    <p class="eyebrow">Curriculum vitae</p>
+    <h1><%= profile["name"] %></h1>
+    <p class="cv-role"><%= profile["role"] %> · <%= profile["tagline"] %></p>
+    <p class="cv-contact">
+      <%= profile["location"] %> ·
+      <a href="mailto:<%= profile["email"] %>"><%= profile["email"] %></a>
+      <%# The email is already named on the line above, so the link list beside
+          it carries the profiles only. %>
+      <% profile_links.reject { |link| link["url"].to_s.start_with?("mailto:") }.each do |link| %> ·
+        <a href="<%= link["url"] %>"<%= " target=\"_blank\" rel=\"noopener noreferrer\"" if external_link?(link["url"]) %>><%= link["label"] %></a>
+      <% end %>
+    </p>
+    <p class="cv-download no-print">
+      <button type="button" class="print-button" data-print>
+        <svg class="print-button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"
+             fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3.5v11"/>
+          <path d="m7.5 10.5 4.5 4.5 4.5-4.5"/>
+          <path d="M4.5 20.5h15"/>
+        </svg>
+        <%= page_copy("cv", "download_label") %>
+      </button>
+    </p>
+  </header>
+
+  <section class="cv-section" aria-labelledby="cv-profile-heading">
+    <h2 id="cv-profile-heading">Profile</h2>
+    <p><%= profile["summary"] %></p>
+    <p><%= profile["seeking"] %></p>
+  </section>
+
+  <section class="cv-section" aria-labelledby="cv-experience-heading">
+    <h2 id="cv-experience-heading">Experience</h2>
+    <% @roles.each do |role| %>
+      <div class="cv-role-block">
+        <h3><%= role["title"] %></h3>
+        <p class="role-meta">
+          <span class="role-company"><%= role["company"] %></span>
+          <span class="role-period"><%= role["period"] %></span>
+          <% if role["location"] %><span class="role-location"><%= role["location"] %></span><% end %>
+        </p>
+        <p><%= role["summary"] %></p>
+        <%# The same optional link /about renders, so the CV points at the
+            write-up rather than describing it. %>
+        <% if role["link"].is_a?(Hash) %>
+          <p class="role-link">
+            <a href="<%= role["link"]["path"] %>"><%= role["link"]["label"] %> →</a>
+          </p>
+        <% end %>
+        <% if Array(role["highlights"]).any? %>
+          <ul class="highlights">
+            <% role["highlights"].each do |item| %>
+              <li><%= item %></li>
+            <% end %>
+          </ul>
+        <% end %>
+      </div>
+    <% end %>
+  </section>
+
+  <% if @selected.any? %>
+    <section class="cv-section" aria-labelledby="cv-projects-heading">
+      <h2 id="cv-projects-heading">Selected independent work</h2>
+      <p class="section-note"><%= page_copy("cv", "projects_note") %></p>
+      <% @selected.each do |project| %>
+        <div class="cv-role-block">
+          <h3>
+            <%= project["title"] %>
+            <span class="badge badge-<%= project["status"] %>"><%= status_label(project["status"]) %></span>
+          </h3>
+          <p><%= project["tagline"] %></p>
+        </div>
+      <% end %>
+    </section>
+  <% end %>
+
+  <section class="cv-section" aria-labelledby="cv-skills-heading">
+    <h2 id="cv-skills-heading">Toolkit</h2>
+    <dl class="cv-skills">
+      <% @skills.each do |group| %>
+        <dt><%= group["group"] %></dt>
+        <dd><%= Array(group["items"]).join(", ") %></dd>
+      <% end %>
+    </dl>
+  </section>
+
+  <section class="cv-section" aria-labelledby="cv-education-heading">
+    <h2 id="cv-education-heading">Education</h2>
+    <ul class="plain-list">
+      <% @education.each do |entry| %>
+        <li>
+          <strong><%= entry["qualification"] %></strong>
+          <span class="muted"><%= entry["institution"] %> · <%= entry["period"] %></span>
+        </li>
+      <% end %>
+    </ul>
+  </section>
+</article>

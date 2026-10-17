@@ -1,0 +1,106 @@
+<header class="page-head">
+  <p class="eyebrow">About</p>
+  <h1><%= profile["name"] %></h1>
+  <p class="lede"><%= profile["summary"] %></p>
+</header>
+
+<section class="section" aria-labelledby="principles-heading">
+  <div class="section-head">
+    <h2 id="principles-heading">How I work</h2>
+  </div>
+
+  <div class="card-grid card-grid-tight">
+    <% Array(profile["principles"]).each do |principle| %>
+      <article class="card principle-card">
+        <h3><%= principle["title"] %></h3>
+        <p><%= principle["body"] %></p>
+      </article>
+    <% end %>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="history-heading">
+  <div class="section-head">
+    <h2 id="history-heading">Experience</h2>
+    <p class="section-note"><%= page_copy("about", "experience_note") %></p>
+  </div>
+
+  <ol class="timeline">
+    <% @roles.each do |role| %>
+      <li class="timeline-item<%= " timeline-item-current" if role["current"] %>">
+        <div class="timeline-marker" aria-hidden="true"></div>
+        <div class="timeline-body">
+          <header class="role-head">
+            <h3 class="role-title"><%= role["title"] %></h3>
+            <p class="role-meta">
+              <span class="role-company"><%= role["company"] %></span>
+              <span class="role-period"><%= role["period"] %></span>
+              <% if role["location"] %><span class="role-location"><%= role["location"] %></span><% end %>
+            </p>
+          </header>
+
+          <p><%= role["summary"] %></p>
+
+          <%# Optional, and a path on this site rather than a URL, so the reader
+              opens the evidence next instead of leaving the page. %>
+          <% if role["link"].is_a?(Hash) %>
+            <p class="role-link">
+              <a href="<%= role["link"]["path"] %>"><%= role["link"]["label"] %> →</a>
+            </p>
+          <% end %>
+
+          <% if Array(role["highlights"]).any? %>
+            <ul class="highlights">
+              <% role["highlights"].each do |item| %>
+                <li><%= item %></li>
+              <% end %>
+            </ul>
+          <% end %>
+        </div>
+      </li>
+    <% end %>
+  </ol>
+</section>
+
+<section class="section" aria-labelledby="skills-heading">
+  <div class="section-head">
+    <h2 id="skills-heading">Toolkit</h2>
+  </div>
+
+  <div class="skill-groups">
+    <% @skills.each do |group| %>
+      <div class="skill-group">
+        <h3><%= group["group"] %></h3>
+        <ul class="chips">
+          <% Array(group["items"]).each do |item| %>
+            <li class="chip"><%= item %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="education-heading">
+  <div class="section-head">
+    <h2 id="education-heading">Education</h2>
+  </div>
+
+  <ul class="plain-list">
+    <% @education.each do |entry| %>
+      <li>
+        <strong><%= entry["qualification"] %></strong>
+        <span class="muted"><%= entry["institution"] %> · <%= entry["period"] %></span>
+      </li>
+    <% end %>
+  </ul>
+</section>
+
+<section class="cta">
+  <h2>Working on something that fits?</h2>
+  <p><%= profile["seeking"] %></p>
+  <ul class="hero-actions">
+    <li><a class="button button-primary" href="mailto:<%= profile["email"] %>">Email me</a></li>
+    <li><a class="button" href="/work">See the work</a></li>
+  </ul>
+</section>

@@ -1,0 +1,983 @@
+#!/usr/bin/env bash
+#
+# bin/site — the one command for building, running, deploying and verifying
+# shoutsid.fyi.
+#
+# The point of a CLI rather than a list of steps in a README is that the
+# command in the README and the command in your shell history are the same
+# command. Anything documented as "run X then Y" is a subcommand here.
+#
+# Usage: bin/site <command> [options]     (bin/site help for the full list)
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+COMPOSE_BASE=(-f "$ROOT/docker-compose.yml")
+COMPOSE_TUNNEL=(-f "$ROOT/docker-compose.yml" -f "$ROOT/docker-compose.tunnel.yml")
+
+ENV_FILE="$ROOT/.env"
+ENV_EXAMPLE="$ROOT/.env.example"
+
+SITE_NAME="shoutsid-fyi"
+WEB_SERVICE="web"
+TUNNEL_SERVICE="cloudflared"
+DEV_SERVICE="dev"
+IMAGE_TAG="shoutsid-fyi-web:latest"
+# The image compose builds for the dev service, and where the digest of its
+# build inputs is kept. Both are named here rather than read back out of
+# compose so that the guard below and the build cannot disagree.
+DEV_IMAGE="shoutsid-fyi-dev:latest"
+DEV_DIGEST_FILE="$ROOT/.dev-image-digest"
+
+# The working tree as the container sees it. The dev image carries the gems and
+# deliberately no source (see image_inputs_digest), so this mount is what
+# supplies the code under test — and a run that could not mount is a run with
+# nothing to test, rather than one that silently tests something else.
+DEV_TREE_MOUNT="$ROOT:/app"
+
+PUBLIC_URL_DEFAULT="https://shoutsid.fyi"
+HEALTH_PATH="/healthz"
+
+# ---------------------------------------------------------------- output
+
+if [ -t 1 ] && [ "${NO_COLOR:-}" = "" ]; then
+  C_RESET=$'\033[0m'; C_BOLD=$'\033[1m'
+  C_OK=$'\033[32m'; C_WARN=$'\033[33m'; C_ERR=$'\033[31m'; C_INFO=$'\033[36m'
+else
+  C_RESET=""; C_BOLD=""; C_OK=""; C_WARN=""; C_ERR=""; C_INFO=""
+fi
+
+log()  { printf '%s[site]%s %s\n' "$C_INFO" "$C_RESET" "$*"; }
+ok()   { printf '%s[ ok ]%s %s\n' "$C_OK" "$C_RESET" "$*"; }
+warn() { printf '%s[warn]%s %s\n' "$C_WARN" "$C_RESET" "$*" >&2; }
+fail() { printf '%s[fail]%s %s\n' "$C_ERR" "$C_RESET" "$*" >&2; exit 1; }
+
+heading() { printf '\n%s%s%s\n' "$C_BOLD" "$*" "$C_RESET"; }
+
+# ---------------------------------------------------------------- helpers
+
+require_docker() {
+  command -v docker >/dev/null 2>&1 || fail "docker is not installed or not on PATH"
+  docker info >/dev/null 2>&1 || fail "the Docker daemon is not reachable (is Docker running?)"
+  docker compose version >/dev/null 2>&1 || fail "the docker compose plugin is required (docker compose version failed)"
+}
+
+# Load .env without executing it. `set -a; source .env` would run arbitrary
+# code from the file and export everything; this reads only the keys the CLI
+# actually needs.
+#
+# NOTE (necessary): this is an allowlist, so a key that is not named here is
+# invisible to every subcommand no matter what the file says. CF_TUNNEL_TOKEN
+# was missing from it, which made `bin/cf-setup` write a perfectly good token
+# and `bin/site deploy` still refuse to start the tunnel with "token is empty".
+# Add new keys here when you add them to .env.example.
+# The split is on the *first* `=` only, and the remainder is taken verbatim
+# with `${line#*=}`. `IFS='=' read -r key value` looks equivalent and is not:
+# bash strips a trailing delimiter, so an unpadded ...== token came back one
+# character short (180 chars on disk, 179 exported). cloudflared rejects an
+# unpadded token outright, so the symptom was "connector will not start" with
+# nothing in the token, the file or the scope to explain it.
+# verify_env_roundtrip in `check` is the regression guard for this.
+load_env() {
+  [ -f "$ENV_FILE" ] || return 0
+  local line key value
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+      ''|\#*) continue ;;
+      *=*) ;;
+      *) continue ;;
+    esac
+    key="${line%%=*}"
+    value="${line#*=}"
+    key="$(printf '%s' "$key" | tr -d ' ')"
+    value="$(printf '%s' "$value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//')"
+    case "$key" in
+      HOST_PORT|DEV_PORT|PUBLIC_URL|APP_VERSION|PUMA_THREADS|CF_TUNNEL_TOKEN|CF_ZONE) export "$key=$value" ;;
+    esac
+  done < "$ENV_FILE"
+}
+
+require_env_file() {
+  [ -f "$ENV_FILE" ] || fail "no .env found — run 'bin/site setup' first (it copies .env.example)"
+}
+
+host_port() { printf '%s' "${HOST_PORT:-3010}"; }
+public_url() { printf '%s' "${PUBLIC_URL:-$PUBLIC_URL_DEFAULT}"; }
+
+# The tunnel overlay marks CF_TUNNEL_TOKEN required, so Compose refuses to even
+# parse it without one. Every command that mentions the tunnel therefore checks
+# the token itself first and gives a message that names the fix, rather than
+# passing Compose's interpolation error through.
+tunnel_configured() { [ -n "${CF_TUNNEL_TOKEN:-}" ]; }
+
+require_tunnel_token() {
+  tunnel_configured || fail "CF_TUNNEL_TOKEN is empty in .env — run 'bin/site cf-setup' first (or use --no-tunnel)"
+}
+
+compose() { docker compose "${COMPOSE_BASE[@]}" "$@"; }
+compose_tunnel() { docker compose "${COMPOSE_TUNNEL[@]}" "$@"; }
+compose_dev() { docker compose "${COMPOSE_BASE[@]}" --profile dev "$@"; }
+
+# For commands that should show whatever happens to be running — `ps`, `logs`,
+# `down` — the overlay is included only when it can be loaded at all.
+compose_running() {
+  if tunnel_configured; then
+    docker compose "${COMPOSE_TUNNEL[@]}" --profile dev "$@"
+  else
+    docker compose "${COMPOSE_BASE[@]}" --profile dev "$@"
+  fi
+}
+
+container_id() {
+  compose_running ps -q "$1" 2>/dev/null | head -n 1
+}
+
+# ---------------------------------------------------------------- setup
+
+cmd_setup() {
+  if [ -f "$ENV_FILE" ]; then
+    ok ".env already exists ($ENV_FILE) — leaving it alone"
+  else
+    cp "$ENV_EXAMPLE" "$ENV_FILE"
+    chmod 600 "$ENV_FILE"
+    ok "wrote .env from .env.example (mode 600)"
+  fi
+  if ! tunnel_configured; then
+    warn "CF_TUNNEL_TOKEN is still empty — run 'bin/site cf-setup' before deploying with the tunnel"
+  fi
+  printf '\nNext:\n  bin/site build\n  bin/site up --no-tunnel\n  bin/site verify\n'
+}
+
+cmd_lock() {
+  require_docker
+  heading "Resolving Gemfile.lock"
+  # Built and copied out rather than written through a bind mount, so this
+  # works on a machine where the project directory is not shared with Docker.
+  docker build -f "$ROOT/Dockerfile" --target lock -t shoutsid-fyi-lock:tmp "$ROOT"
+  local cid
+  cid="$(docker create shoutsid-fyi-lock:tmp)"
+  docker cp "$cid:/app/Gemfile.lock" "$ROOT/Gemfile.lock"
+  docker rm "$cid" >/dev/null
+  docker rmi shoutsid-fyi-lock:tmp >/dev/null 2>&1 || true
+  ok "Gemfile.lock updated"
+}
+
+# ---------------------------------------------------------------- lifecycle
+
+cmd_build() {
+  local no_cache=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --no-cache) no_cache="--no-cache" ;;
+      *) fail "unknown option for build: $1" ;;
+    esac
+    shift
+  done
+  require_docker
+  heading "Building $WEB_SERVICE"
+  compose build $no_cache "$WEB_SERVICE"
+  ok "image built: $IMAGE_TAG"
+}
+
+cmd_up() {
+  local with_tunnel=0
+  local do_build=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --tunnel) with_tunnel=1 ;;
+      --no-tunnel) with_tunnel=0 ;;
+      --build) do_build=1 ;;
+      *) fail "unknown option for up: $1" ;;
+    esac
+    shift
+  done
+
+  require_docker
+  require_env_file
+
+  if [ "$do_build" = "1" ]; then cmd_build; fi
+
+  if [ "$with_tunnel" = "1" ]; then
+    require_tunnel_token
+    heading "Starting $WEB_SERVICE + $TUNNEL_SERVICE"
+    compose_tunnel up -d
+  else
+    heading "Starting $WEB_SERVICE (no tunnel)"
+    compose up -d "$WEB_SERVICE"
+  fi
+
+  wait_for_health || fail "the site did not become healthy — check 'bin/site logs web'"
+  ok "site is up on http://127.0.0.1:$(host_port)"
+
+  if [ "$with_tunnel" = "1" ]; then
+    log "tunnel is running; verify the public URL with 'bin/site verify --public'"
+  fi
+}
+
+cmd_down() {
+  require_docker
+  local volumes=""
+  [ "${1:-}" = "--volumes" ] && volumes="--volumes"
+  heading "Stopping stack"
+  compose_running down $volumes
+  ok "stack stopped"
+}
+
+cmd_restart() {
+  require_docker
+  require_env_file
+  heading "Restarting"
+  if tunnel_configured; then
+    compose_tunnel restart
+  else
+    compose restart
+  fi
+  wait_for_health || fail "the site did not become healthy after restart"
+  ok "restarted"
+}
+
+cmd_ps() {
+  require_docker
+  compose_running ps
+}
+
+cmd_logs() {
+  require_docker
+  local service="${1:-}"
+  if [ -n "$service" ]; then
+    compose_running logs -f --tail=200 "$service"
+  else
+    compose_running logs -f --tail=200
+  fi
+}
+
+# ---------------------------------------------------------------- health
+
+# Polls the app's own health endpoint. Returns non-zero rather than exiting so
+# callers can decide whether an unhealthy site is fatal.
+wait_for_health() {
+  local port timeout=45 waited=0
+  port="$(host_port)"
+  printf '%s[site]%s waiting for http://127.0.0.1:%s%s ' "$C_INFO" "$C_RESET" "$port" "$HEALTH_PATH"
+  while [ "$waited" -lt "$timeout" ]; do
+    if curl -fsS -m 3 "http://127.0.0.1:${port}${HEALTH_PATH}" >/dev/null 2>&1; then
+      printf ' %sready%s\n' "$C_OK" "$C_RESET"
+      return 0
+    fi
+    printf '.'
+    sleep 2
+    waited=$((waited + 2))
+  done
+  printf ' %stimeout%s\n' "$C_ERR" "$C_RESET"
+  return 1
+}
+
+cmd_health() {
+  require_docker
+  local port body
+  port="$(host_port)"
+  heading "Health"
+  body="$(curl -fsS -m 5 "http://127.0.0.1:${port}${HEALTH_PATH}")" \
+    || fail "no healthy response on http://127.0.0.1:${port}${HEALTH_PATH}"
+  printf '%s\n' "$body"
+  ok "app healthy"
+}
+
+# ---------------------------------------------------------------- verify
+
+# Every page the site claims to serve, plus one that must 404. A status code
+# alone is not enough for the homepage: a 200 with an empty body is the failure
+# this catches (a content file that failed to load renders an empty shell).
+cmd_verify() {
+  local target="local"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --public) target="public" ;;
+      --local) target="local" ;;
+      *) fail "unknown option for verify: $1" ;;
+    esac
+    shift
+  done
+
+  local base
+  if [ "$target" = "public" ]; then
+    base="$(public_url)"
+  else
+    base="http://127.0.0.1:$(host_port)"
+  fi
+
+  heading "Verifying $base"
+
+  local failures=0 code path
+  local paths="/ /about /work /blog /contact /cv /healthz /sitemap.xml /blog/feed.xml /robots.txt /llms.txt"
+
+  for path in $paths; do
+    code="$(curl -s -o /dev/null -w '%{http_code}' -m 10 "${base}${path}" || printf '000')"
+    if [ "$code" = "200" ]; then
+      printf '  %s200%s  %s\n' "$C_OK" "$C_RESET" "$path"
+    else
+      printf '  %s%s%s  %s\n' "$C_ERR" "$code" "$C_RESET" "$path"
+      failures=$((failures + 1))
+    fi
+  done
+
+  # A missing page must be a 404, not a 200 with an error body in it.
+  code="$(curl -s -o /dev/null -w '%{http_code}' -m 10 "${base}/this-page-does-not-exist" || printf '000')"
+  if [ "$code" = "404" ]; then
+    printf '  %s404%s  %s\n' "$C_OK" "$C_RESET" "/this-page-does-not-exist"
+  else
+    printf '  %s%s%s  %s (expected 404)\n' "$C_ERR" "$code" "$C_RESET" "/this-page-does-not-exist"
+    failures=$((failures + 1))
+  fi
+
+  # Content, not just status: the site has to actually say who it is about.
+  #
+  # Buffer the body before matching it. Piping curl straight into `grep -q`
+  # makes grep exit at the first match with the body still in flight, which
+  # SIGPIPEs curl and surfaces as "curl: (23) Failure writing output to
+  # destination" — reported as the homepage not naming the engineer, i.e. a
+  # spurious failure. It never reproduced over loopback (the whole body lands
+  # before grep can exit) and reproduced reliably through the tunnel, which is
+  # the only place it matters.
+  local homepage
+  homepage="$(curl -fsS -m 10 "${base}/" 2>/dev/null || true)"
+  if printf '%s' "$homepage" | grep -q "James Summerill"; then
+    printf '  %scontent%s  homepage names James Summerill\n' "$C_OK" "$C_RESET"
+  else
+    printf '  %scontent%s  homepage does not name James Summerill\n' "$C_ERR" "$C_RESET"
+    failures=$((failures + 1))
+  fi
+
+  if [ "$failures" -gt 0 ]; then
+    fail "${failures} check(s) failed"
+  fi
+  ok "all checks passed"
+}
+
+# --------------------------------------------------------- external links
+#
+# `verify` can only see this site, and the suite has no network on purpose, so a
+# URL pointing at somebody else's service is the one class of claim nothing here
+# checked — and one had already rotted: the webcap card, whose status is `live`,
+# advertised an "API docs" link at a path that service has never served, while
+# every other check passed. A portfolio whose whole argument is that its claims
+# can be checked should not be the last place to find out.
+#
+# Its own subcommand rather than a step inside `check`, because it needs the
+# network and `check` deliberately does not.
+cmd_links() {
+  heading "Checking every external URL in config/ and content/"
+
+  local line url source code
+  local failures=0 count=0 seen=""
+  local urls
+
+  urls="$(grep -rHoE 'https?://[^[:space:]]+' "$ROOT/config" "$ROOT/content" | sort || true)"
+  [ -n "$urls" ] || fail "no external URLs found in config/ or content/ — has one of them moved?"
+
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    source="${line%%:*}"
+    url="${line#*:}"
+    # Trim the punctuation the surrounding prose or markup contributes: a URL in
+    # a sentence ends in a full stop, and one in a bracket ends in a bracket.
+    url="$(printf '%s' "$url" | sed -e 's/[.,;)]*$//' -e "s/['\"]$//")"
+
+    # One probe per distinct URL. The same address appears in several files —
+    # the profile links and the project card, the landing page and the case
+    # study — and hitting a stranger's server once per mention is rude.
+    if [[ "$seen" == *"|${url}|"* ]]; then continue; fi
+    seen="${seen}|${url}|"
+    count=$((count + 1))
+
+    # GET rather than HEAD: hosts including LinkedIn answer 405 to a HEAD they
+    # would serve happily, and a check that calls a working link broken is one
+    # you learn to ignore.
+    code="$(curl -sL -o /dev/null -w '%{http_code}' -m 20 \
+      -A "Mozilla/5.0 (link check; ${SITE_NAME})" "$url" || printf '000')"
+
+    if [ "${code:0:1}" = "2" ] || [ "${code:0:1}" = "3" ]; then
+      printf '  %s%s%s  %s\n' "$C_OK" "$code" "$C_RESET" "$url"
+    else
+      printf '  %s%s%s  %s  (%s)\n' "$C_ERR" "$code" "$C_RESET" "$url" "$source"
+      failures=$((failures + 1))
+    fi
+  done <<< "$urls"
+
+  if [ "$failures" -gt 0 ]; then
+    fail "${failures} of ${count} external link(s) did not resolve"
+  fi
+  ok "${count} external links resolved"
+}
+
+# ---------------------------------------------------------------- deploy
+
+cmd_deploy() {
+  local with_tunnel=1
+  local do_build=1
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --tunnel) with_tunnel=1 ;;
+      --no-tunnel) with_tunnel=0 ;;
+      --no-build) do_build=0 ;;
+      --build) do_build=1 ;;
+      *) fail "unknown option for deploy: $1" ;;
+    esac
+    shift
+  done
+
+  require_docker
+  require_env_file
+
+  if [ "$do_build" = "1" ]; then cmd_build; fi
+
+  if [ "$with_tunnel" = "1" ]; then
+    require_tunnel_token
+    heading "Bringing up site + tunnel"
+    compose_tunnel up -d
+  else
+    heading "Bringing up site only"
+    compose up -d "$WEB_SERVICE"
+  fi
+
+  wait_for_health || fail "the site did not become healthy — check 'bin/site logs web'"
+  cmd_verify --local
+
+  if [ "$with_tunnel" = "1" ]; then
+    log "waiting for the public URL to answer through the tunnel"
+    local waited=0
+    while [ "$waited" -lt 60 ]; do
+      if curl -fsS -m 10 "$(public_url)${HEALTH_PATH}" >/dev/null 2>&1; then
+        ok "public: $(public_url)"
+        cmd_verify --public
+        break
+      fi
+      sleep 3
+      waited=$((waited + 3))
+    done
+    if [ "$waited" -ge 60 ]; then
+      warn "the public URL did not answer within 60s — the local site is healthy, so check the tunnel:"
+      warn "  bin/site tunnel status"
+      warn "DNS for a newly created hostname can also take a few minutes to propagate"
+    fi
+  fi
+
+  ok "deploy complete"
+}
+
+# ---------------------------------------------------------------- tunnel
+
+cmd_tunnel() {
+  local action="${1:-status}"
+  require_docker
+  case "$action" in
+    up)
+      require_env_file
+      require_tunnel_token
+      compose_tunnel up -d "$TUNNEL_SERVICE"
+      ok "tunnel started"
+      ;;
+    down)
+      require_env_file
+      require_tunnel_token
+      compose_tunnel stop "$TUNNEL_SERVICE"
+      ok "tunnel stopped"
+      ;;
+    restart)
+      require_env_file
+      require_tunnel_token
+      compose_tunnel restart "$TUNNEL_SERVICE"
+      ok "tunnel restarted"
+      ;;
+    logs)
+      require_env_file
+      require_tunnel_token
+      compose_tunnel logs -f --tail=200 "$TUNNEL_SERVICE"
+      ;;
+    status)
+      local cid
+      cid="$(container_id "$TUNNEL_SERVICE")"
+      if [ -z "$cid" ]; then
+        warn "tunnel container is not running (start it with 'bin/site tunnel up')"
+        return 0
+      fi
+      docker ps --filter "id=$cid" --format 'table {{.Names}}\t{{.Status}}'
+      heading "Recent tunnel log"
+      docker logs --tail=15 "$cid" 2>&1 || true
+      ;;
+    *)
+      fail "unknown tunnel action '$action' (up|down|restart|logs|status)"
+      ;;
+  esac
+}
+
+cmd_cf_setup() {
+  [ -f "$ROOT/bin/cf-setup.sh" ] || fail "bin/cf-setup.sh is missing"
+  exec "$ROOT/bin/cf-setup.sh" "$@"
+}
+
+# ---------------------------------------------------------------- dev
+
+# The dev image provides two things and no more: the Ruby toolchain and the
+# locked gems. It deliberately does not bake in the source. `check`, `test`,
+# `lint` and `shell` mount the working tree over /app, so the code under test is
+# always the code on disk and editing a template, a spec or a post cannot
+# invalidate anything the image provides.
+#
+# The mount is therefore required rather than an optimisation — and it is why
+# the guard further down exists. With no source in the image, a run whose mount
+# did not take effect has an empty /app, and an empty /app is not a loud
+# failure: `rspec` finds no spec files, prints "0 examples, 0 failures" and
+# exits 0. Nothing here may assume the mount fails visibly.
+#
+# So the digest covers only the build inputs, and an ordinary source edit skips
+# the build entirely. Rebuilding on every edit cost about a minute of silence
+# before the first test line, which is what once made a one-line failure read as
+# a hang. `--rebuild` forces the build; `--no-build` trusts the image already
+# there.
+image_inputs_digest() {
+  local f
+  for f in Dockerfile Gemfile Gemfile.lock .dockerignore; do
+    [ -f "$ROOT/$f" ] && sha256sum "$ROOT/$f"
+  done | sha256sum | cut -d' ' -f1
+}
+
+dev_image_exists() {
+  [ -n "$(docker image inspect "$DEV_IMAGE" --format '{{.Id}}' 2>/dev/null)" ]
+}
+
+# The build mode is split out of the caller's arguments so that
+# `bin/site test spec/app_spec.rb --rebuild` keeps the path for rspec and
+# consumes only the flag. The runtime is chosen the same way: `--host` and
+# `--docker` force one, and the default picks the host when it is provably
+# equivalent to the container and falls back when it is not.
+DEV_BUILD_MODE="auto"
+DEV_RUNTIME="auto"
+DEV_ARGS=()
+
+split_dev_flags() {
+  DEV_BUILD_MODE="auto"
+  DEV_RUNTIME="auto"
+  DEV_ARGS=()
+  local arg
+  for arg in "$@"; do
+    case "$arg" in
+      # Asking to rebuild is asking about the image, so it implies the
+      # container: there is nothing on the host to rebuild.
+      --rebuild) DEV_BUILD_MODE="force"; DEV_RUNTIME="container" ;;
+      --no-build) DEV_BUILD_MODE="skip" ;;
+      --docker) DEV_RUNTIME="container" ;;
+      --host) DEV_RUNTIME="host" ;;
+      *) DEV_ARGS+=("$arg") ;;
+    esac
+  done
+}
+
+ensure_dev_image() {
+  if [ "$DEV_BUILD_MODE" = "skip" ]; then
+    dev_image_exists || fail "--no-build was given but $DEV_IMAGE does not exist yet — run 'bin/site check' once without it"
+    log "using the existing dev image (--no-build)"
+    return 0
+  fi
+
+  # No image at all is the one case the digest cannot speak for.
+  if ! dev_image_exists; then
+    DEV_BUILD_MODE="force"
+  fi
+
+  local digest
+  digest="$(image_inputs_digest)"
+
+  if [ "$DEV_BUILD_MODE" != "force" ] \
+     && [ "$digest" = "$(cat "$DEV_DIGEST_FILE" 2>/dev/null || true)" ]; then
+    log "dev image already matches Gemfile.lock — skipping the build"
+    return 0
+  fi
+
+  heading "Building $DEV_SERVICE"
+  compose_dev build "$DEV_SERVICE" >&2
+  printf '%s' "$digest" > "$DEV_DIGEST_FILE"
+  ok "dev image rebuilt"
+}
+
+# Runs a named stage and reports how long it took. A stage that fails still
+# returns its own status — the timing line is printed and then the status is
+# handed back, rather than being swallowed to keep the output tidy.
+stage() {
+  local label="$1"
+  shift
+  heading "$label"
+  local started rc
+  started=$(date +%s)
+  if "$@"; then rc=0; else rc=$?; fi
+  log "$label finished in $(($(date +%s) - started))s"
+  return $rc
+}
+
+# `check` is the contract: lint plus the whole suite. Never report a change as
+# done without it.
+# The CLI reads .env with its own parser, so a parser bug stays invisible until
+# something downstream rejects the value — which is how a truncated
+# CF_TUNNEL_TOKEN reached cloudflared. Compare what the parser produced against
+# the file itself, byte for byte, and fail on any drift. Lengths are printed,
+# never values: one of these keys is a secret.
+verify_env_roundtrip() {
+  [ -f "$ENV_FILE" ] || return 0
+  local key raw inline checked=0
+  for key in HOST_PORT DEV_PORT PUBLIC_URL APP_VERSION PUMA_THREADS CF_TUNNEL_TOKEN CF_ZONE; do
+    raw="$(awk -v k="$key" 'index($0, k "=") == 1 { sub(/^[^=]*=/, ""); print; exit }' "$ENV_FILE")"
+    [ -n "$raw" ] || continue
+    eval "inline=\${$key:-}"
+    checked=$((checked + 1))
+    [ "$raw" = "$inline" ] || fail "config: $key does not round-trip through load_env — .env has ${#raw} chars, the CLI read ${#inline} (a dropped trailing '=' is the usual cause)"
+  done
+  ok "config round-trip: $checked keys match .env byte for byte"
+}
+
+# --------------------------------------------------------- host or container
+#
+# Running the suite is slow only because of how it is reached. The work is
+# under two seconds; starting a container for it has been measured on this
+# machine at anything from 2s to 288s, and that variance belongs to Docker, not
+# to the project. So the host Ruby is used when it is present and *equivalent*.
+#
+# Equivalent is the whole condition, and it is checked rather than assumed: the
+# same Ruby version the Gemfile pins, with the locked gems already installed.
+# Anything else falls through to the container — which is not the degraded path
+# but the reproducible one, and the only one that works on a machine with no
+# Ruby. "Ruby needs no host install" is still true.
+# The container sets LANG=C.UTF-8 (see the Dockerfile) and the app depends on
+# it. lib/content.rb matches UTF-8 content with a regex, and under Ruby's
+# US-ASCII default the em dashes in config/experience.yml raise "invalid byte
+# sequence in US-ASCII" — 35 examples that pass in the container fail on a host
+# shell that has no locale. So the same guarantee is made here rather than left
+# to whatever environment the caller happens to have.
+ensure_utf8_locale() {
+  case "${LC_ALL:-${LANG:-}}" in
+    *[Uu][Tt][Ff]*) return 0 ;;
+  esac
+  export LANG=C.UTF-8
+  export LC_ALL=C.UTF-8
+}
+
+gemfile_ruby_version() {
+  [ -f "$ROOT/Gemfile" ] || return 1
+  sed -n 's/^ruby "\([0-9][0-9.]*\)".*/\1/p' "$ROOT/Gemfile" | head -n 1
+}
+
+host_ruby_version() {
+  command -v ruby >/dev/null 2>&1 || return 1
+  ruby -e 'print RUBY_VERSION' 2>/dev/null
+}
+
+# RVM's bin and gem paths are set directly rather than by sourcing
+# ~/.rvm/scripts/rvm. Sourcing it installs `cd` hooks that are not `set -u`
+# clean, and a hook that fails takes the `bundle check` below down with it —
+# which reads as "this host is not ready", so every run fell back to the
+# container while appearing to have made a considered choice. Setting the paths
+# is the whole of what is needed and cannot fail that way.
+RVM_ROOT="$HOME/.rvm"
+
+rvm_env_for() {
+  local version="$1" gems="$RVM_ROOT/gems/ruby-$1"
+  [ -d "$RVM_ROOT/rubies/ruby-$version/bin" ] || return 1
+  export GEM_HOME="$gems"
+  export GEM_PATH="$gems:$gems@global"
+  export PATH="$RVM_ROOT/rubies/ruby-$version/bin:$gems/bin:$gems@global/bin:$PATH"
+}
+
+host_ruby_ready() {
+  local version
+  version="$(gemfile_ruby_version)" || return 1
+  ensure_utf8_locale
+
+  # An ambient Ruby already at the pinned version — rbenv, asdf, a system
+  # install — is used as it stands.
+  if [ "$(host_ruby_version)" != "$version" ]; then
+    rvm_env_for "$version" || return 1
+  fi
+
+  command -v bundle >/dev/null 2>&1 || return 1
+  [ "$(host_ruby_version)" = "$version" ] || return 1
+  # The real question: the gems for this lockfile, installed and complete.
+  (cd "$ROOT" && bundle check >/dev/null 2>&1)
+}
+
+choose_runtime() {
+  case "$DEV_RUNTIME" in
+    host)
+      host_ruby_ready \
+        || fail "--host was given but the host has no Ruby $(gemfile_ruby_version) with these gems — run 'bundle install' first"
+      ;;
+    container) return 0 ;;
+    auto)
+      if host_ruby_ready; then
+        DEV_RUNTIME="host"
+      else
+        # Named, never silent. A fallback that says nothing reads as a
+        # considered choice, and it has been one in the wrong direction: a
+        # probe failing quietly sent every run to the container while the log
+        # looked like a decision — see the trap about RVM. So the fallback says
+        # which Ruby it wanted, that it is in the container, and what ends it.
+        local pinned
+        pinned="$(gemfile_ruby_version || echo "the pinned version")"
+        DEV_RUNTIME="container"
+        warn "no host Ruby $pinned with the locked gems — running in the container"
+        warn "  'bundle install' moves check|test|lint to the host, which takes about two seconds"
+      fi
+      ;;
+  esac
+}
+
+# Everything the container path needs and the host path does not. Docker is not
+# even required in host mode, which means `check` still works with the daemon
+# stopped.
+ensure_runtime_ready() {
+  if [ "$DEV_RUNTIME" = "host" ]; then
+    log "host Ruby $(host_ruby_version) — no container"
+    return 0
+  fi
+  require_docker
+  require_tree_mount
+  ensure_dev_image
+}
+
+# --------------------------------------------------- running against the tree
+#
+# Every command that runs code from the tree goes through dev_run, so the mount
+# flag, the read-only policy and the choice of runtime are stated once. `:ro` is
+# deliberate: the suite reads content and renders it, and nothing in a test run
+# has any business writing into the working tree.
+#
+# Quoting is done for the caller because the command is re-parsed by a shell
+# under either runtime — `bin/site test spec/app_spec.rb -e 'some example'` has
+# to reach rspec as three arguments, not five words.
+dev_quote_args() {
+  local out="" arg
+  for arg in "$@"; do
+    out="$out $(printf '%q' "$arg")"
+  done
+  printf '%s' "$out"
+}
+
+# The guard is not ceremony. Because the dev image carries no source, a run
+# that did not actually mount the tree finds an empty /app — and `rspec` with no
+# spec files exits 0 announcing "0 examples, 0 failures". That is a false green,
+# the one outcome worth a line to make impossible. spec_helper sets
+# fail_if_no_examples for the same reason; this one catches it a step earlier
+# and can say why.
+DEV_MOUNT_GUARD='if [ ! -f /app/app.rb ]; then printf "the working tree is not mounted at /app, so there is nothing here to run — see the file sharing note in bin/site help\n" >&2; exit 98; fi; '
+
+# One runner for both runtimes, so the commands below do not care which is
+# active and a new one cannot support only half the cases. The guard is the
+# container's, because only the container can be missing the tree.
+dev_run() {
+  if [ "$DEV_RUNTIME" = "host" ]; then
+    ( cd "$ROOT" && bash -c "$1" )
+  else
+    compose_dev run --rm --no-deps -v "$DEV_TREE_MOUNT:ro" "$DEV_SERVICE" \
+      bash -c "$DEV_MOUNT_GUARD$1"
+  fi
+}
+
+cmd_check() {
+  split_dev_flags "$@"
+  choose_runtime
+  ensure_runtime_ready
+  local started
+  started=$(date +%s)
+  stage "Config" verify_env_roundtrip
+  # Lint and suite in one invocation. The second `compose run` this used to make
+  # paid for another container start and another bundler boot and proved nothing
+  # the first had not.
+  stage "Lint and test" dev_run \
+    'echo "[site] standardrb"; bundle exec standardrb || exit; echo "[site] rspec"; bundle exec rspec'
+  ok "check passed in $(($(date +%s) - started))s"
+}
+
+cmd_test() {
+  split_dev_flags "$@"
+  choose_runtime
+  ensure_runtime_ready
+  dev_run "bundle exec rspec$(dev_quote_args ${DEV_ARGS[@]+"${DEV_ARGS[@]}"})"
+}
+
+cmd_lint() {
+  split_dev_flags "$@"
+  choose_runtime
+  ensure_runtime_ready
+  dev_run "bundle exec standardrb$(dev_quote_args ${DEV_ARGS[@]+"${DEV_ARGS[@]}"})"
+}
+
+cmd_shell() {
+  split_dev_flags "$@"
+  require_docker
+  require_tree_mount
+  ensure_dev_image
+  compose_dev run --rm -v "$DEV_TREE_MOUNT" "$DEV_SERVICE" bash
+}
+
+# Docker Desktop only mounts directories on its file-sharing allowlist. File
+# sharing used to be a development nicety; it is now load-bearing, because the
+# dev image carries no source and every command that runs code mounts the tree.
+# Mounting a path Docker does not share fails, but not in a way that says which
+# list to edit, so the check and the exact fix are both here.
+docker_share_check() {
+  local settings="$HOME/.docker/desktop/settings-store.json"
+  [ -f "$settings" ] || return 0
+  grep -q "\"$ROOT\"" "$settings" 2>/dev/null
+}
+
+require_tree_mount() {
+  if docker_share_check; then return 0; fi
+  warn "Docker Desktop does not share $ROOT, so the working tree cannot be mounted into the container."
+  cat <<EOF
+
+  The dev image deliberately carries no source: check, test, lint and shell
+  mount the working tree over /app, so that what runs is what is on disk. Add
+  the project to Docker Desktop's file sharing list and restart Docker:
+
+    Docker Desktop → Settings → Resources → File sharing → add:
+      $ROOT
+
+  (Restarting Docker restarts every container on the machine — including
+  webcap and its tunnel — so do it when that is acceptable.)
+
+  Commands that do not read the working tree are unaffected:
+
+    bin/site build      # build the image
+    bin/site up         # run the built site
+    bin/site verify     # check the running site over HTTP
+
+EOF
+  fail "$ROOT must be shared with Docker before the suite can run"
+}
+
+cmd_dev() {
+  require_docker
+  require_env_file
+  require_tree_mount
+  heading "Dev server with live reload on http://127.0.0.1:${DEV_PORT:-3011}"
+  compose_dev run --rm --service-ports \
+    -v "$ROOT:/app" \
+    -e RACK_ENV=development \
+    "$DEV_SERVICE" bundle exec puma -C config/puma.rb
+}
+
+# ---------------------------------------------------------------- help
+
+cmd_version() {
+  local version="0.1.0"
+  if [ -f "$ENV_FILE" ]; then
+    version="$(grep -E '^APP_VERSION=' "$ENV_FILE" | head -n1 | cut -d= -f2- | tr -d ' \r' || true)"
+  fi
+  printf '%s %s\n' "$SITE_NAME" "${version:-0.1.0}"
+}
+
+cmd_help() {
+  cat <<EOF
+${C_BOLD}bin/site${C_RESET} — build, run, deploy and verify ${C_BOLD}shoutsid.fyi${C_RESET}
+
+${C_BOLD}Getting started${C_RESET}
+  setup                     Create .env from .env.example (safe to re-run)
+  cf-setup                  One-time: create the Cloudflare tunnel + DNS records
+                            (requires CF_API_TOKEN in the environment)
+  lock                      Regenerate Gemfile.lock in a container
+
+${C_BOLD}Build and run (Docker)${C_RESET}
+  build [--no-cache]        Build the production image
+  up [--tunnel|--no-tunnel] [--build]
+                            Start the site, optionally with the tunnel
+  down [--volumes]          Stop the stack (--volumes also drops volumes)
+  restart                   Restart the stack and wait for health
+  ps                        Show container status
+  logs [service]            Follow logs (web, cloudflared)
+
+${C_BOLD}Deploy through the tunnel${C_RESET}
+  deploy [--no-tunnel] [--no-build]
+                            Build, start, wait for health, verify local and public
+  tunnel up|down|restart|logs|status
+                            Manage the Cloudflare Tunnel container alone
+
+${C_BOLD}Check it actually works${C_RESET}
+  health                    Print the app's own health response
+  verify [--local|--public] Check every page returns 200 and that a bad path 404s
+  links                     Check every external URL in config/ and content/
+                            resolves. The only check that needs the network,
+                            which is why it is not part of check|verify
+
+${C_BOLD}Development${C_RESET}
+  check [--host|--docker] [--rebuild|--no-build]
+                            Lint + full test suite (the contract)
+  test [rspec args]         Run the suite
+  lint [standardrb args]    Run the linter
+  shell                     A shell in the dev image
+  dev                       Live-reload server (needs Docker file sharing)
+
+${C_BOLD}Options${C_RESET}
+  --tunnel / --no-tunnel    Include or exclude the cloudflared service
+                            (deploy defaults to --tunnel, up defaults to off)
+  --build / --no-build      Rebuild the image before starting
+  --local / --public        Target for verify (deploy checks both)
+  --rebuild / --no-build    For check|test|lint: force the dev image to be
+                            rebuilt, or trust the one already built
+  --host / --docker         For check|test|lint: run on the host Ruby or in a
+                            container, instead of choosing automatically
+
+check, test and lint run against the working tree, so what is tested is what is
+on disk. On the host that is simply this directory; in a container the tree is
+mounted over /app, which is why this path must be on Docker Desktop's file
+sharing list:
+
+  $ROOT
+
+The dev image holds the gems and nothing else, so editing source, specs or
+content never triggers a rebuild — only Dockerfile, Gemfile, Gemfile.lock and
+.dockerignore do.
+
+The host runtime is preferred when it is present and equivalent: the same Ruby
+version the Gemfile pins, with the locked gems installed. It exists because a
+container start has been measured here at anything from 2s to 288s while the
+suite itself takes under a second. Anything that does not match falls back to
+the container, which is the reproducible path and needs no host Ruby at all.
+
+Configuration lives in .env (see .env.example).
+EOF
+}
+
+# ---------------------------------------------------------------- dispatch
+
+main() {
+  local command="${1:-help}"
+  shift || true
+
+  case "$command" in
+    help|-h|--help) cmd_help ;;
+    version|-v|--version) cmd_version ;;
+    setup) cmd_setup "$@" ;;
+    lock) cmd_lock "$@" ;;
+    build) cmd_build "$@" ;;
+    up) cmd_up "$@" ;;
+    down) cmd_down "$@" ;;
+    restart) cmd_restart "$@" ;;
+    ps) cmd_ps "$@" ;;
+    logs) cmd_logs "$@" ;;
+    health) cmd_health "$@" ;;
+    verify) cmd_verify "$@" ;;
+    links) cmd_links "$@" ;;
+    deploy) cmd_deploy "$@" ;;
+    tunnel) cmd_tunnel "$@" ;;
+    cf-setup) cmd_cf_setup "$@" ;;
+    check) cmd_check "$@" ;;
+    test) cmd_test "$@" ;;
+    lint) cmd_lint "$@" ;;
+    shell) cmd_shell "$@" ;;
+    dev) cmd_dev "$@" ;;
+    *) fail "unknown command '$command' — run 'bin/site help'" ;;
+  esac
+}
+
+load_env
+main "$@"

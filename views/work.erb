@@ -1,0 +1,46 @@
+<header class="page-head">
+  <p class="eyebrow">Work</p>
+  <h1>Projects and research</h1>
+  <p class="lede"><%= page_copy("work", "intro") %></p>
+</header>
+
+<%# The three sections come from `section` in config/projects.yml, and the
+    homepage renders the same three from the same field. One grouping, so a
+    project cannot lead one page and sit fourth on the other. %>
+<section class="section">
+  <div class="card-grid">
+    <% @main.each do |project| %>
+      <%== erb :"partials/project_card", locals: {project: project} %>
+    <% end %>
+  </div>
+</section>
+
+<% if @systems.any? %>
+  <section class="section section-research" aria-labelledby="systems-heading">
+    <div class="section-head">
+      <h2 id="systems-heading">Research and Experimental Systems</h2>
+      <p class="section-note"><%= page_copy("shared", "systems_note") %></p>
+    </div>
+
+    <div class="card-grid">
+      <% @systems.each do |project| %>
+        <%== erb :"partials/project_card", locals: {project: project} %>
+      <% end %>
+    </div>
+  </section>
+<% end %>
+
+<% if @archive.any? %>
+  <section class="section" aria-labelledby="archive-heading">
+    <div class="section-head">
+      <h2 id="archive-heading">More projects</h2>
+      <p class="section-note"><%= page_copy("shared", "more_note") %></p>
+    </div>
+
+    <div class="card-grid">
+      <% @archive.each do |project| %>
+        <%== erb :"partials/project_card", locals: {project: project} %>
+      <% end %>
+    </div>
+  </section>
+<% end %>

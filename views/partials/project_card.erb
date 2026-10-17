@@ -1,0 +1,33 @@
+<%# Rendered with locals: { project: } — every section that shows a project
+    uses this one card, so a project cannot be labelled differently on the
+    homepage than on /work. %>
+<article class="card project-card" id="<%= project["slug"] %>">
+  <header class="card-head">
+    <h3 class="card-title">
+      <a href="/work/<%= project["slug"] %>"><%= project["title"] %></a>
+    </h3>
+    <span class="badge badge-<%= project["status"] %>" title="<%= status_hint(project["status"]) %>"><%= status_label(project["status"]) %></span>
+  </header>
+
+  <p class="card-tagline"><%= project["tagline"] %></p>
+  <p class="card-summary"><%= excerpt(project["summary"]) %></p>
+
+  <% if project["stack"].any? %>
+    <ul class="chips" aria-label="Built with">
+      <% project["stack"].each do |tech| %>
+        <li class="chip"><%= tech %></li>
+      <% end %>
+    </ul>
+  <% end %>
+
+  <ul class="card-links">
+    <li><a class="card-link-primary" href="/work/<%= project["slug"] %>">Case study</a></li>
+    <% project["links"].each do |link| %>
+      <% if external_link?(link["url"]) %>
+        <li><a href="<%= link["url"] %>" target="_blank" rel="noopener noreferrer"><%= link["label"] %></a></li>
+      <% else %>
+        <li><a href="<%= link["url"] %>"><%= link["label"] %></a></li>
+      <% end %>
+    <% end %>
+  </ul>
+</article>

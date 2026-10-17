@@ -1,0 +1,154 @@
+<section class="hero">
+  <p class="dateline"><span class="dateline-dot" aria-hidden="true"></span> <%= profile["short_location"] || profile["location"] %> — <%= profile["role"] %></p>
+  <p class="eyebrow"><%= profile["tagline"] %></p>
+  <h1><%= profile["headline"] %></h1>
+  <p class="lede"><%= profile["summary"] %></p>
+
+  <ul class="hero-actions">
+    <li><a class="button button-primary" href="/work">See the work</a></li>
+    <li><a class="button" href="/about">About &amp; experience</a></li>
+    <li><a class="button" href="/blog">Blog</a></li>
+    <li><a class="button" href="/cv">CV (online)</a></li>
+    <%# The label says what the visitor gets; the query string is what the CV
+        page reads to open the save-as-PDF dialog once it has painted. Without
+        JavaScript this is still a working link to the online CV. %>
+    <li>
+      <a class="button" href="/cv?download=1">
+        <%= page_copy("cv", "download_label") %>
+      </a>
+    </li>
+  </ul>
+
+  <ul class="hero-links">
+    <% profile_links.each do |link| %>
+      <% if external_link?(link["url"]) %>
+        <li><a href="<%= link["url"] %>" target="_blank" rel="noopener noreferrer"><%= link["label"] %> <span aria-hidden="true">↗</span></a></li>
+      <% else %>
+        <li><a href="<%= link["url"] %>"><%= link["label"] %></a></li>
+      <% end %>
+    <% end %>
+  </ul>
+
+  <%# The pitch, in the hero rather than only in the closing call to action.
+      `seeking` is required by the loader, so this cannot render empty.
+
+      It is rendered on its own, with no label above it. A "Looking for" label
+      over a sentence that already opens "Looking for" reads as a duplicated
+      phrase to anything extracting the page's text, and the closing call to
+      action on this page uses the same value with no label — so the label was
+      the odd one out, not the sentence. %>
+  <p class="hero-seeking"><%= profile["seeking"] %></p>
+</section>
+
+<section class="section" aria-labelledby="featured-heading">
+  <div class="section-head">
+    <h2 id="featured-heading">Selected work</h2>
+    <p class="section-note"><%= page_copy("home", "featured_note") %></p>
+  </div>
+
+  <div class="card-grid">
+    <% @main.each do |project| %>
+      <%== erb :"partials/project_card", locals: {project: project} %>
+    <% end %>
+  </div>
+</section>
+
+<%# Employment before research on purpose. The stated goal is a backend
+    engineering role, so the Rails history should be the third thing a reader
+    meets, not the fourth behind an investigation that makes no claim yet. %>
+<section class="section" aria-labelledby="experience-heading">
+  <div class="section-head">
+    <h2 id="experience-heading">Engineering experience</h2>
+    <p class="section-note">
+      <%= page_copy("home", "experience_note") %>
+      <a href="<%= page_link("home", "experience_link")["path"] %>"><%= page_link("home", "experience_link")["label"] %> →</a>
+    </p>
+  </div>
+
+  <% @roles.each do |role| %>
+    <article class="role">
+      <header class="role-head">
+        <h3 class="role-title"><%= role["title"] %></h3>
+        <p class="role-meta">
+          <span class="role-company"><%= role["company"] %></span>
+          <span class="role-period"><%= role["period"] %></span>
+        </p>
+      </header>
+      <p><%= role["summary"] %></p>
+      <% if Array(role["highlights"]).any? %>
+        <ul class="highlights">
+          <% role["highlights"].each do |item| %>
+            <li><%= item %></li>
+          <% end %>
+        </ul>
+      <% end %>
+    </article>
+  <% end %>
+</section>
+
+<% if @systems.any? %>
+  <section class="section section-research" aria-labelledby="systems-heading">
+    <div class="section-head">
+      <h2 id="systems-heading">Research and Experimental Systems</h2>
+      <p class="section-note"><%= page_copy("shared", "systems_note") %></p>
+    </div>
+
+    <div class="card-grid">
+      <% @systems.each do |project| %>
+        <%== erb :"partials/project_card", locals: {project: project} %>
+      <% end %>
+    </div>
+  </section>
+<% end %>
+
+<% if @others.any? %>
+  <section class="section" aria-labelledby="more-heading">
+    <div class="section-head">
+      <h2 id="more-heading">More projects</h2>
+      <p class="section-note"><%= page_copy("shared", "more_note") %></p>
+    </div>
+
+    <ul class="project-list">
+      <% @others.each do |project| %>
+        <li class="project-row">
+          <div class="project-row-main">
+            <h3><a href="/work/<%= project["slug"] %>"><%= project["title"] %></a></h3>
+            <p><%= excerpt(project["tagline"], limit: 120) %></p>
+          </div>
+          <span class="badge badge-<%= project["status"] %>"><%= status_label(project["status"]) %></span>
+        </li>
+      <% end %>
+    </ul>
+  </section>
+<% end %>
+
+<% if @posts.any? %>
+  <section class="section" aria-labelledby="blog-heading">
+    <div class="section-head">
+      <h2 id="blog-heading">Latest posts</h2>
+      <p class="section-note"><a href="/blog">All posts →</a></p>
+    </div>
+
+    <ul class="post-list">
+      <% @posts.each do |post| %>
+        <li class="post-row">
+          <h3><a href="<%= post.url %>"><%= post.title %></a></h3>
+          <p class="post-meta">
+            <time datetime="<%= post.iso_date %>"><%= post.date_display %></time>
+            · <%= post.reading_minutes %> min read
+          </p>
+          <p class="post-summary"><%= post.summary %></p>
+        </li>
+      <% end %>
+    </ul>
+  </section>
+<% end %>
+
+<section class="cta">
+  <h2>Get in touch</h2>
+  <p><%= profile["seeking"] %></p>
+  <ul class="hero-actions">
+    <li><a class="button button-primary" href="mailto:<%= profile["email"] %>">Email me</a></li>
+    <li><a class="button" href="/contact">Other ways to reach me</a></li>
+  </ul>
+</section>

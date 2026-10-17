@@ -1,0 +1,58 @@
+# Cloudflare Tunnel overlay — the public edge for shoutsid.fyi.
+#
+# Layered on top of docker-compose.yml by `bin/site deploy` / `bin/site up
+# --tunnel` / `bin/site tunnel *`. Not usable on its own: it references the
+# `web` service's healthcheck.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.tunnel.yml up -d
+#
+# Why a tunnel and not a port: the site's own port is bound to loopback, so the
+# only way in is through Cloudflare. There is no inbound port open, no
+# certificate to renew and no reverse proxy to keep patched.
+
+services:
+  cloudflared:
+    # Pinned by digest; the tag is kept only for readability.
+    image: cloudflare/cloudflared:latest@sha256:9b49eed8f62806d5d45ddf59ecefb5710429598ea6d3fcccd2af938f621b2b07
+
+    restart: unless-stopped
+
+    # No traffic until the site is actually answering. This is why the base
+    # file keeps its healthcheck in the image rather than in Compose: this
+    # gate reads it.
+    depends_on:
+      web:
+        condition: service_healthy
+
+    # Remotely-managed tunnel: the ingress rules for shoutsid.fyi and
+    # www.shoutsid.fyi live in Cloudflare (bin/cf-setup.sh writes them), so
+    # this container needs a token and nothing else — no credentials file, no
+    # config file, no bind mount, and no host directory that has to be shared
+    # with the Docker VM.
+    #
+    # `:?` rather than `:-`: Compose refuses to start with an empty token
+    # instead of launching a tunnel that cannot connect and reporting it as a
+    # running service.
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CF_TUNNEL_TOKEN:?CF_TUNNEL_TOKEN must be set — run bin/cf-setup.sh or see README}
+
+    # The tunnel never needs to write anything, and it holds the only
+    # credential in the deployment.
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+    mem_limit: 128m
+    cpus: 0.25
+
+    # Lives long enough to show a reconnect loop in `bin/site tunnel logs`.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

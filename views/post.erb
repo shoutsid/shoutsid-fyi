@@ -1,0 +1,21 @@
+<article class="post">
+  <p class="back-link"><a href="/blog">← All posts</a></p>
+
+  <header class="page-head">
+    <h1><%= @post.title %></h1>
+    <p class="post-meta">
+      <time datetime="<%= @post.iso_date %>"><%= @post.date_display %></time>
+      · <%= @post.reading_minutes %> min read
+      <% if @post.tags.any? %> · <%= format_tags(@post.tags) %><% end %>
+    </p>
+    <p class="lede"><%= @post.summary %></p>
+  </header>
+
+  <%# Rendered markdown is HTML by construction, so it is the one content
+      field that must not be escaped. The source is a file in this repository,
+      reviewed like code — there is no user-submitted text anywhere on the
+      site. %>
+  <div class="prose">
+    <%== @post.html %>
+  </div>
+</article>

@@ -1,0 +1,78 @@
+<article class="case-study">
+  <p class="back-link"><a href="/work">← All work</a></p>
+
+  <header class="page-head">
+    <p class="eyebrow">
+      <span class="badge badge-<%= @project["status"] %>"><%= status_label(@project["status"]) %></span>
+      <% if @project["year"] %><span class="eyebrow-year"><%= @project["year"] %></span><% end %>
+    </p>
+    <h1><%= @project["title"] %></h1>
+    <p class="lede"><%= @project["tagline"] %></p>
+  </header>
+
+  <div class="prose">
+    <p><%= @project["summary"] %></p>
+  </div>
+
+  <% @project["screenshots"].each do |shot| %>
+    <figure class="case-figure">
+      <img src="<%= shot["path"] %>" alt="<%= shot["alt"] %>" loading="lazy">
+      <figcaption><%= shot["label"] %></figcaption>
+    </figure>
+  <% end %>
+
+  <% if @project["demo"] %>
+    <section class="case-section" aria-labelledby="demo-heading">
+      <h2 id="demo-heading">Documented example</h2>
+      <p class="section-note"><%= @project["demo"]["title"] %></p>
+      <pre><code><%= @project["demo"]["request"] %></code></pre>
+      <pre><code><%= @project["demo"]["response"] %></code></pre>
+    </section>
+  <% end %>
+
+  <% if @project["highlights"].any? %>
+    <section class="case-section" aria-labelledby="capabilities-heading">
+      <h2 id="capabilities-heading">
+        <%= @project["status"] == "research" ? "Approach" : "What it does" %>
+      </h2>
+      <ul class="highlights highlights-lg">
+        <% @project["highlights"].each do |item| %>
+          <li><%= item %></li>
+        <% end %>
+      </ul>
+    </section>
+  <% end %>
+
+  <% if @project["notes"] && !@project["notes"].empty? %>
+    <aside class="callout callout-<%= @project["status"] %>">
+      <h2 class="callout-title">Status and caveats</h2>
+      <p><%= @project["notes"] %></p>
+    </aside>
+  <% end %>
+
+  <% if @project["stack"].any? %>
+    <section class="case-section" aria-labelledby="stack-heading">
+      <h2 id="stack-heading">Built with</h2>
+      <ul class="chips">
+        <% @project["stack"].each do |tech| %>
+          <li class="chip"><%= tech %></li>
+        <% end %>
+      </ul>
+    </section>
+  <% end %>
+
+  <% if @project["links"].any? %>
+    <section class="case-section" aria-labelledby="links-heading">
+      <h2 id="links-heading">Links</h2>
+      <ul class="link-list">
+        <% @project["links"].each do |link| %>
+          <% if external_link?(link["url"]) %>
+            <li><a href="<%= link["url"] %>" target="_blank" rel="noopener noreferrer"><%= link["label"] %> <span aria-hidden="true">↗</span></a></li>
+          <% else %>
+            <li><a href="<%= link["url"] %>"><%= link["label"] %></a></li>
+          <% end %>
+        <% end %>
+      </ul>
+    </section>
+  <% end %>
+</article>

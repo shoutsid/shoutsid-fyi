@@ -1,0 +1,93 @@
+# Production stack for shoutsid.fyi — the site, and nothing else.
+#
+# The Cloudflare Tunnel lives in docker-compose.tunnel.yml and is layered on
+# only when a deploy wants a public edge:
+#
+#   docker compose -f docker-compose.yml                       # site only
+#   docker compose -f docker-compose.yml \
+#                  -f docker-compose.tunnel.yml up -d          # site + tunnel
+#
+# The split exists because the tunnel's token is marked required (`:?`) so
+# Compose refuses to start it without one — and a required variable in the base
+# file would make *every* command fail until the tunnel had been provisioned,
+# including `docker compose build`. Keeping it in an overlay means the hard
+# failure lands exactly where it is useful.
+#
+# `name:` keeps container names stable regardless of the checkout directory.
+
+name: shoutsid-fyi
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    # Unbounded container logs are a slow disk-full outage. This is a site that
+    # logs one line per request, so 10 MB x 3 is weeks of history.
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  web:
+    build:
+      context: .
+      target: runtime
+    image: shoutsid-fyi-web:latest
+    restart: unless-stopped
+
+    # Secrets and tunables come from the host CLI reading `.env`. The file is
+    # in .dockerignore, so it is never copied into a layer.
+    env_file:
+      - .env
+    environment:
+      PORT: "3000"
+      RACK_ENV: production
+
+    # Loopback only. A published `3000:3000` would put the site on every
+    # interface and route around the tunnel, which is exactly the exposure the
+    # tunnel exists to avoid.
+    ports:
+      - "127.0.0.1:${HOST_PORT:-3010}:3000"
+
+    # The app renders text and writes nothing, so the root filesystem can be
+    # read-only. That turns "something started writing to disk" from a slow
+    # surprise into an immediate, loud failure.
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+    mem_limit: 256m
+    cpus: 0.5
+    stop_grace_period: 10s
+
+    # The healthcheck is defined in the image (see Dockerfile), so it cannot
+    # drift from the thing it describes. The tunnel overlay depends on it.
+    logging: *default-logging
+
+  # Not part of the deploy path, and not where check|test|lint normally run:
+  # those use the host Ruby when it matches the Gemfile pin, with no image and
+  # no mount in the picture (see bin/site's choose_runtime). This is the
+  # container path — `shell`, `dev`, `--docker`, and the fallback for a host
+  # without that Ruby. It carries the gems and no source: the working tree is
+  # mounted over /app, so what runs is what is on disk. That mount is the thing
+  # in this project that needs Docker Desktop's file sharing — and it is why
+  # the deploy path, which mounts nothing, does not care whether the project
+  # directory is shared.
+  dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      target: dev
+    image: shoutsid-fyi-dev:latest
+    env_file:
+      - .env
+    environment:
+      RACK_ENV: development
+      PORT: "3000"
+    command: ["bundle", "exec", "puma", "-C", "config/puma.rb"]
+    ports:
+      - "127.0.0.1:${DEV_PORT:-3011}:3000"
+    logging: *default-logging

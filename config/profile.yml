@@ -1,0 +1,91 @@
+# The site's identity. Every page reads this file; nothing about James is
+# hard-coded in a template.
+#
+# Claim discipline (see docs/editorial.md): the summary describes work, not
+# results. Adjectives like "production-grade" or "state-of-the-art" are absent
+# on purpose — the projects carry evidence instead.
+
+name: James Summerill
+# Software engineering first, with Rails as the backbone and applied AI as the
+# differentiator — in that order. Ten years of the history is Rails, the case
+# study is about a Rails architecture, and the roles being applied for are
+# backend and Rails roles; the AI work is real and deployed, but it is not the
+# only identity on the page.
+role: Senior Software Engineer
+tagline: Rails · Backend systems · Practical AI
+# The <h1>. One sentence, and the only place a positioning claim is made.
+headline: Building robust backend systems and practical AI tools.
+location: Seaham, County Durham, United Kingdom
+# The short form, for the homepage dateline where the full string is too long
+# to sit beside the role. Kept here rather than written into the template,
+# because a place name is a claim about James and every claim lives in config.
+short_location: Seaham, County Durham
+email: jsummerill.ltd@gmail.com
+
+# The hero lede and the About page opener.
+summary: >
+  I build and evolve backend systems: long-lived Ruby on Rails applications,
+  version and dependency upgrades that ship in steps rather than as a rewrite,
+  domain boundaries the build enforces, and integrations with the legacy
+  systems those applications cannot leave behind. Ten years of backend work,
+  most of it Rails in production. Since 2024 I have also built independent,
+  local-first AI and agent tooling — some of it deployed as public services,
+  some of it still research.
+
+# The short version, rendered in the hero, on the contact page and on the CV.
+# It is an offer rather than a preference: what a reader is scanning for is
+# whether James is available, for what, and where — not the kind of team he
+# would like to join. Kept broad enough to cover both the Rails and the
+# applied-AI halves of the work.
+seeking: >
+  Available for senior backend and Rails engineering roles in the United
+  Kingdom — remote or hybrid, permanent.
+
+links:
+  - label: GitHub
+    url: https://github.com/shoutsid
+  - label: LinkedIn
+    url: https://www.linkedin.com/in/jsummerill/
+  - label: Webcap
+    url: https://webcap.shoutsid.fyi/
+  - label: Email
+    url: mailto:jsummerill.ltd@gmail.com
+
+site:
+  url: https://shoutsid.fyi
+  title: James Summerill — Senior Software Engineer
+  description: >
+    Senior software engineer with 10+ years in Ruby on Rails and backend
+    systems: framework and dependency upgrades, modular architecture with
+    boundaries the build enforces, legacy integration, and independent
+    local-first AI and agent tooling.
+
+# Shown on the About page under "How I work". Each line is a claim about
+# practice, not a claim about outcomes.
+principles:
+  - title: Boundaries before services
+    body: >
+      A modular monolith with real domain boundaries — enforced by the build,
+      not by convention — is usually the cheaper place to start than a network
+      of services. Split when the boundary has earned it.
+  - title: Evidence over assertion
+    body: >
+      Generated or hand-written, a change is only as good as the test that
+      fails without it. I would rather record a reproducible result than a
+      confident one.
+  - title: AI, held to evidence
+    body: >
+      A model's output is a proposal, not a result. I build agent and AI tooling
+      around tests, independent verification and recorded evidence, so a change
+      is accepted because it passed something rather than because a model said
+      it did.
+  - title: Upgrades are maintenance, not projects
+    body: >
+      Keeping a long-lived Rails application upgradeable is continuous work:
+      dependency hygiene, a suite that catches regressions, and CI that makes
+      the change cheap to prove. Left alone, it becomes a rewrite.
+  - title: Boring infrastructure
+    body: >
+      Containers that are pinned, unprivileged and read-only; one public path
+      in through a tunnel; logs that are bounded. The goal is that nothing
+      about running it is interesting.
