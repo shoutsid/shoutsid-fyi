@@ -57,6 +57,7 @@ On Docker Desktop the project directory must be on the file-sharing list.
 | `spec/content_spec.rb` | Content loading and validation, including the failure cases: unknown status, duplicate slug, no featured project, wrong section, bad link, missing figure, post with no summary |
 | `spec/site_integrity_spec.rb` | Whole-site integrity: internal links, assets, titles, descriptions, canonical URLs, template prose, cache policy, digest correctness, palette contrast, no leaked template syntax |
 | `spec/harness_spec.rb` | The test arrangement itself: the dev image has no source, the runtime image does, every code-running command uses one mount, an empty run cannot pass, the link checker is documented, the version has one source, the suite reads UTF-8 |
+| `spec/documentation_spec.rb` | Project and contributor Markdown: relative links and anchors resolve, and every `bin/site` command in a fenced example exists with flags the CLI accepts |
 
 `spec/spec_helper.rb` sets `RACK_ENV=test` **before** requiring the app, so
 boot-time content validation is skipped and deliberately broken content can be
@@ -65,10 +66,12 @@ so it never binds a socket and never depends on a free port.
 
 ## What the integrity tests enforce
 
-These are the invariants worth knowing before changing content or templates:
+These are the invariants worth knowing before changing content, templates or
+documentation:
 
 - Every internal link found on every rendered page resolves.
-- Every asset the layout references is served.
+- The core layout assets are served; page images are checked from rendered
+  `<img>` tags.
 - Every page has a title, a meta description and a canonical URL.
 - Every project's `status` is in `Content::STATUSES`; the badge label, tooltip
   and callout style all derive from it.
@@ -81,10 +84,14 @@ These are the invariants worth knowing before changing content or templates:
 - Every response declares a cache policy, and the digest in the layout is the
   digest of the file on disk.
 - Every text colour clears WCAG AA (4.5:1) on every surface it is used on, in
-  both themes, and the two dark palettes are byte-for-byte identical.
+  both themes, and the two dark palettes carry the same token map.
 - No template contains a literal run of six or more words.
 - No rendered page leaks `<%` or `%>` from a broken ERB comment.
 - `/healthz` reports the content actually loaded.
+- Every relative link and anchor in the project and contributor Markdown
+  resolves, and every `bin/site` command in a fenced example exists with flags
+  the CLI accepts. (`test` and `lint` only have their command names checked;
+  their arguments go to RSpec and StandardRB.)
 
 ## The harness guards
 
@@ -128,8 +135,9 @@ see.
 ## Adding a test
 
 - Put route-level tests in `spec/app_spec.rb`, content/validation tests in
-  `spec/content_spec.rb`, and site-wide invariants in
-  `spec/site_integrity_spec.rb`.
+  `spec/content_spec.rb`, site-wide invariants in
+  `spec/site_integrity_spec.rb`, and documentation checks in
+  `spec/documentation_spec.rb`.
 - `rack-test` helpers (`get`, `last_response`) are included globally.
 - Content is memoised. If a test changes files or stubs the loader, call
   `ShoutsidFyi::Content.reset!` between examples.

@@ -1,8 +1,9 @@
 # Deployment
 
-The site is published through a Cloudflare Tunnel. The application container
-binds to loopback only; there is no inbound port, no certificate to renew and
-no reverse proxy to keep patched.
+The site is published through a Cloudflare Tunnel. Compose publishes the app on
+host loopback only; inside the private Compose network the app listens on
+`0.0.0.0:3000` so `cloudflared` can reach it. There is no publicly reachable
+origin port, no certificate to renew and no reverse proxy to keep patched.
 
 ```mermaid
 flowchart LR
@@ -157,9 +158,11 @@ If the new version is wrong:
 
 ```bash
 docker tag shoutsid-fyi-web:previous shoutsid-fyi-web:latest
-bin/site up --no-build
+bin/site up          # no rebuild; a running tunnel reconnects
 bin/site verify
 ```
+
+If the tunnel also needs restarting, use `bin/site up --tunnel` instead.
 
 For a change that needs a code rollback, check out the last good commit,
 rebuild and deploy:

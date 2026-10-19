@@ -25,14 +25,16 @@ HOST_PORT  DEV_PORT  PUBLIC_URL  APP_VERSION  PUMA_THREADS  CF_TUNNEL_TOKEN  CF_
 ```
 
 A key not on that list is invisible to every subcommand, no matter what the file
-says. Add new keys to both `.env.example` and the list in `load_env`.
+says. Add a key to the `load_env` allowlist when the CLI should read it, and to
+`.env.example` when a new checkout needs a default. `PUBLIC_URL` is allowlisted
+but optional, so it is not in the example.
 
-Values are split on the **first** `=` only, and the remainder is kept verbatim.
-This matters for base64 tunnel tokens: `IFS='=' read -r key value` strips a
-trailing delimiter, which silently shortened a token ending in `=`. The
-`check` command's environment round-trip compares every allowlisted key present
-in the file against the raw value byte for byte and fails on any drift. It
-prints lengths, never values.
+Values are split on the **first** `=` only, so trailing `=` characters in a
+base64 token survive. Do not pad values or wrap them in quotes: `load_env`
+trims both, and `check` compares the raw line with the parsed value, so either
+form fails the round-trip. That round-trip is the regression guard for
+`IFS='=' read -r key value`, which strips a trailing delimiter and silently
+shortened a token ending in `=`. It prints lengths, never values.
 
 ## Variables
 
@@ -56,9 +58,13 @@ prints lengths, never values.
 | `CF_TUNNEL_TOKEN` | For tunnel deploys | The remotely-managed tunnel credential. Written by `bin/cf-setup.sh`; stored only in `.env`. The tunnel overlay marks it required, so Compose refuses to start the tunnel without it. |
 | `CF_API_TOKEN` | `cf-setup` only | A scoped Cloudflare API token used **once** to create the tunnel and DNS records. It is not written to `.env` and is not available to the container. |
 | `CF_ZONE` | No | Zone name used by `cf-setup`; defaults to `shoutsid.fyi`. Also allowlisted in `bin/site`. |
-| `CF_TUNNEL_NAME` | No | Tunnel name used by `cf-setup`; defaults to `shoutsid-fyi`. |
-| `CF_HOSTS` | No | Space-separated hostnames to serve; defaults to the apex and `www`. |
-| `CF_ORIGIN` | No | Tunnel origin; defaults to `http://web:3000` on the Compose network. |
+| `CF_TUNNEL_NAME` | No | Tunnel name used by `cf-setup`; defaults to `shoutsid-fyi`. Read from the shell, not `.env`. |
+| `CF_HOSTS` | No | Space-separated hostnames to serve; defaults to the apex and `www`. Read from the shell, not `.env`. |
+| `CF_ORIGIN` | No | Tunnel origin; defaults to `http://web:3000` on the Compose network. Read from the shell, not `.env`. |
+
+Of the `cf-setup` variables, only `CF_ZONE` is read from `.env`.
+`CF_TUNNEL_NAME`, `CF_HOSTS` and `CF_ORIGIN` must be exported in the shell for
+`bin/site cf-setup`; otherwise they fall back to their defaults.
 
 `CF_TUNNEL_TOKEN` is the only secret in `.env`. `CF_API_TOKEN` is an operator
 credential for provisioning and should be short-lived or revoked after setup.
@@ -119,9 +125,9 @@ deployment value comes from `.env`; the same fallback default appears in
 `app.rb`, `bin/site` and `.env.example`, and `spec/harness_spec.rb` fails if
 those three disagree.
 
-To ship a new version, update `.env` (the deployed value) and `.env.example`
-(what a new checkout gets). If the fallback itself changes, update `app.rb` and
-`bin/site` with it.
+To ship a new version, set `APP_VERSION` in `.env` (the deployed value). If the
+fallback itself changes, update `app.rb`, `bin/site` and `.env.example` together:
+`spec/harness_spec.rb` asserts that all three carry the same string.
 
 ### Content validation
 

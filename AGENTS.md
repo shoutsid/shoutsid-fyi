@@ -59,9 +59,9 @@ about two seconds. See the trap about the runtime.
 | `config/*.yml` | All prose and all claims, including page and section copy in `pages.yml`. Templates must not contain any — `site_integrity_spec.rb` fails on a literal run of six or more words in a template. |
 | `views/` | ERB. `layout.erb` plus one template per route, partials under `partials/`. |
 | `public/` | CSS, JS, favicon, `robots.txt`, `llms.txt`, the social preview `og.png`, and the case-study figures: `screenshots/` for captures of the running services, `diagrams/` for authored drawings. Served directly, no asset pipeline. |
-| `spec/` | Routes, content invariants, whole-site integrity, response headers and the contrast of the palette. |
+| `spec/` | Routes, content invariants, whole-site integrity, response headers, palette contrast, and the documentation's links and command examples. |
 | `docs/` | User-facing documentation: getting started, configuration, architecture, content authoring, deployment, testing, troubleshooting and the editorial rules. |
-| `README.md` | The project overview and quick start. It links to `docs/` rather than duplicating it; update both when a command or a constraint changes. |
+| `README.md` | The project overview and quick start. It keeps a short command table and links to `docs/` for the full reference; update both when a command or a constraint changes. |
 | `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md` | Repository policies surfaced by GitHub. |
 | `bin/site` | The CLI. Every documented operation is a subcommand; nothing is documented as "run X then Y". |
 | `bin/cf-setup.sh` | One-time Cloudflare tunnel and DNS provisioning. |
@@ -98,10 +98,10 @@ about two seconds. See the trap about the runtime.
   the digest in the layout is the digest of the file on disk.
 - **Every text colour clears WCAG AA (4.5:1)** on every surface it is used on, in
   both themes, and the two dark palettes — the stored-theme attribute and the
-  no-JavaScript media query — are byte-for-byte the same map. Computed from the
-  tokens in `site_integrity_spec.rb`, so a palette edit has to clear the bar
-  rather than be trusted. `--text-faint` measured 3.08:1 before this existed, on
-  the small mono labels and post dates it is used for.
+  no-JavaScript media query — carry the same token map. Computed from the tokens
+  in `site_integrity_spec.rb`, so a palette edit has to clear the bar rather
+  than be trusted. `--text-faint` measured 3.08:1 before this existed, on the
+  small mono labels and post dates it is used for.
 - **`/healthz` reports the content it can actually read** — the number of
   projects and posts must match the loaded content, so an empty content store
   cannot be reported as healthy.
@@ -132,10 +132,10 @@ about two seconds. See the trap about the runtime.
   grouping and the validation, `spec/app_spec.rb` pins the order both pages
   actually render, and the two must agree — a reorder of the file moved Rails
   once, which is why the position is pinned rather than left to a comment.
-- **Raw output is deliberate and narrow.** `<%== %>` appears in exactly three
-  places: `views/layout.erb` for `yield` and the two partials, and
-  `views/post.erb` for rendered Markdown. Everywhere else uses `<%= %>`, which
-  escapes. Adding a fourth is a decision, not a convenience.
+- **Raw output is deliberate and narrow.** `<%== %>` is used only for
+  already-rendered HTML: `yield`, the header, footer and project-card partials,
+  and rendered Markdown. Everywhere else uses `<%= %>`, which escapes. Adding
+  another use is a decision, not a convenience.
 
 ## Traps that cost real time
 

@@ -33,15 +33,16 @@ There is no database, no cache server, no background worker and no write path.
    `public/`. Static dispatch happens before `before` filters run.
 6. **Helpers** read the content store, build canonical URLs, choose status
    labels and render page copy.
-7. **ERB** renders the view with escaping on. Only `yield`, the two layout
-   partials and rendered Markdown use raw output.
+7. **ERB** renders the view with escaping on. Raw output is limited to
+   embedding already-rendered HTML: `yield`, the header, footer and project-card
+   partials, and rendered Markdown.
 8. **`before` filters** add the security headers to generated responses.
 
 ## Routes
 
 | Route | Renders |
 |---|---|
-| `GET /` | Homepage: hero, selected work, systems/research, archive, latest posts, experience |
+| `GET /` | Homepage: hero, selected work, experience, systems/research, archive, latest posts, contact CTA |
 | `GET /about` | Full experience, education, toolkit and working principles |
 | `GET /work` | Every project, grouped by `section` |
 | `GET /work/:slug` | A project case study |
@@ -98,8 +99,9 @@ The app uses ERB through Tilt and Erubi with `set :erb, escape: true`. In
 practice:
 
 - `<%= %>` escapes by default and is used everywhere.
-- `<%== %>` is reserved for `yield`, the two layout partials and rendered
-  Markdown. Adding a fourth use is a decision, not a convenience.
+- `<%== %>` is reserved for embedding already-rendered HTML: `yield`, the
+  header, footer and project-card partials, and rendered Markdown. Adding
+  another use is a decision, not a convenience.
 - `erubi` is a direct dependency in the `Gemfile`. Without it, Tilt falls back
   to stdlib ERB, which ignores the escaping option and does not support the raw
   output tag at all. That fallback shipped as two live bugs before it was

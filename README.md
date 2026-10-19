@@ -55,7 +55,7 @@ The site is deliberately small in surface area and strict in what it claims:
   [`docs/editorial.md`](docs/editorial.md).
 - **The runtime is hardened by default.** The production container runs
   unprivileged, with a read-only root filesystem, all capabilities dropped, and
-  no inbound port exposed to the network.
+  no public inbound port.
 
 This repository is **source-available, not open source**. It is published so the
 implementation and its claims can be inspected. See [License](#license).
@@ -80,8 +80,8 @@ implementation and its claims can be inspected. See [License](#license).
   the output it actually produced.
 - **Markdown blog** — YAML front matter, reading time, tags, drafts, an Atom
   feed at `/blog/feed.xml`, and per-post metadata.
-- **Generated CV** — the same experience, projects, toolkit and education as
-  the rest of the site, laid out to print or save as PDF.
+- **Generated CV** — the same experience, toolkit and education as the rest of
+  the site, plus selected projects, laid out to print or save as PDF.
 - **SEO and machine-readable output** — canonical URLs, Open Graph metadata,
   `sitemap.xml`, `robots.txt` and an [`llms.txt`](public/llms.txt) summary for
   automated readers.
@@ -97,14 +97,14 @@ implementation and its claims can be inspected. See [License](#license).
 | Layer | Choice |
 |---|---|
 | Language | Ruby 3.3.12 |
-| Web framework | Sinatra 4.1 (`Sinatra::Base`) |
-| Application server | Puma 6.5 |
+| Web framework | Sinatra 4.2.1 (`Sinatra::Base`) |
+| Application server | Puma 6.6.1 |
 | Templates | ERB through Tilt/Erubi, escaping on by default |
-| Markdown | Kramdown 2.5 with the GFM parser |
+| Markdown | Kramdown 2.5.2 with the GFM parser |
 | Content | YAML (`config/*.yml`) and Markdown (`content/blog/*.md`) |
 | Assets | Hand-written CSS and JavaScript, served from `public/` |
-| Tests | RSpec 3.13 with `rack-test` |
-| Lint | StandardRB |
+| Tests | RSpec 3.13.2 with `rack-test` 2.2.0 |
+| Lint | StandardRB 1.57.0 |
 | Packaging | Multi-stage Dockerfile, Docker Compose |
 | Public edge | Cloudflare Tunnel (`cloudflared`) |
 
@@ -154,7 +154,7 @@ The published host port is **3010**, not 3000: the container always listens on
 | `bin/site lint [standardrb args]` | Run the linter |
 | `bin/site links` | Check every external URL in `config/` and `content/` |
 | `bin/site deploy` | Build, start, health-check, verify locally and publicly |
-| `bin/site dev` | Live-reload development server on port 3011 |
+| `bin/site dev` | Development server with content and template reload on port 3011 |
 | `bin/site shell` | Shell in the dev image with the working tree mounted |
 
 Every command is documented in [Getting started](docs/getting-started.md#command-reference)
@@ -196,14 +196,15 @@ bin/site lint                    # StandardRB only
 bin/site shell                   # interactive shell in the dev image
 ```
 
-### Live reload
+### Development server
 
 ```bash
 bin/site dev   # http://127.0.0.1:3011
 ```
 
-`bin/site dev` needs Docker and a writable mount of the working tree. The
-production path (`build`, `up`, `verify`, `deploy`) mounts nothing.
+`bin/site dev` needs Docker and a writable mount of the working tree. Templates
+and content reload on the next request; changes to `app.rb` or `lib/` need a
+restart. The production path (`build`, `up`, `verify`, `deploy`) mounts nothing.
 
 ## Project structure
 
@@ -226,7 +227,7 @@ production path (`build`, `up`, `verify`, `deploy`) mounts nothing.
 ├── public/                     CSS, JS, favicon, robots.txt, llms.txt, og.png
 │   ├── screenshots/            captures of running services
 │   └── diagrams/               authored drawings, labelled as drawings
-├── spec/                       routes, content invariants, site integrity, harness
+├── spec/                       routes, content, site and documentation integrity, harness
 ├── docs/                       user and contributor documentation
 ├── bin/
 │   ├── site                    the CLI
@@ -281,7 +282,7 @@ bin/site links     # external URLs in config/ and content/ resolve
 
 | Gate | What it catches |
 |---|---|
-| `check` | Style, routes, content invariants, internal links, asset integrity, cache policy, security headers and the test harness itself |
+| `check` | Style, routes, content invariants, internal links, asset integrity, documentation links and command examples, cache policy, security headers and the test harness itself |
 | `verify` | A container or tunnel that builds but does not actually serve complete pages |
 | `links` | A URL pointing at somebody else's service that has rotted since the last check |
 
@@ -290,15 +291,18 @@ that is provably equivalent and in a container otherwise. It cannot pass
 without running examples: `spec_helper` sets `fail_if_no_examples`, and the
 container runner refuses to run against an unmounted tree.
 
-The suite covers four layers:
+The suite covers five layers:
 
 - **Routes** — every page, project, post, feed, sitemap, health endpoint and
   security header.
 - **Content invariants** — the same rules the app enforces at boot, including
   their failure cases.
-- **Site integrity** — every internal link resolves, every referenced asset is
+- **Site integrity** — every internal link resolves, the core layout assets are
   served, every page has a title, description and canonical URL, and no template
   syntax leaks into rendered output.
+- **Documentation integrity** — every relative link and anchor in the project
+  and contributor Markdown resolves, and every `bin/site` command in a fenced
+  example exists with flags the CLI accepts.
 - **The harness** — the dev image, the mount and the no-examples guard that
   make the other layers trustworthy.
 
@@ -307,8 +311,10 @@ the guards.
 
 ## Deployment
 
-The public edge is a Cloudflare Tunnel. The app binds to loopback only; there
-is no inbound port, no certificate to renew and no reverse proxy to patch.
+The public edge is a Cloudflare Tunnel. Compose publishes the app on host
+loopback only; inside the private Compose network the app listens on
+`0.0.0.0:3000` so `cloudflared` can reach it. There is no publicly reachable
+origin port, no certificate to renew and no reverse proxy to patch.
 
 ```bash
 # One-time, with a scoped Cloudflare API token:
@@ -362,8 +368,9 @@ a public issue for a security problem.
 
 This is a personal portfolio, published for reference. Corrections to factual
 claims, accessibility fixes, broken-link reports and bug reports are welcome.
-Feature pull requests are not solicited, and the site's editorial rules apply to
-content changes. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the
+Feature requests are welcome as issues; unsolicited feature pull requests are
+not. The site's editorial rules apply to content changes. Read
+[CONTRIBUTING.md](CONTRIBUTING.md) and the
 [Code of Conduct](CODE_OF_CONDUCT.md) before opening an issue or pull request.
 
 ## License

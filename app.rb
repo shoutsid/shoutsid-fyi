@@ -54,8 +54,9 @@ module ShoutsidFyi
       # Escaping is on (Erubi's option is `escape`, not `escape_html` — Tilt
       # passes template options straight through to Erubi::Engine). So `<%= %>`
       # is safe by default and anything that is already markup has to say so
-      # with `<%== %>`. The layout and the two partials it renders are the only
-      # places that do; see the note above `yield` in views/layout.erb.
+      # with `<%== %>`. Raw output is limited to `yield`, the header, footer and
+      # project-card partials, and rendered Markdown; see the note above `yield`
+      # in views/layout.erb.
       #
       # This setting is only meaningful because `erubi` is a direct dependency
       # in the Gemfile: without it Tilt falls back to stdlib ERB, which ignores

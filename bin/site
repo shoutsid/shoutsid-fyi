@@ -72,14 +72,18 @@ require_docker() {
 # invisible to every subcommand no matter what the file says. CF_TUNNEL_TOKEN
 # was missing from it, which made `bin/cf-setup` write a perfectly good token
 # and `bin/site deploy` still refuse to start the tunnel with "token is empty".
-# Add new keys here when you add them to .env.example.
-# The split is on the *first* `=` only, and the remainder is taken verbatim
-# with `${line#*=}`. `IFS='=' read -r key value` looks equivalent and is not:
-# bash strips a trailing delimiter, so an unpadded ...== token came back one
-# character short (180 chars on disk, 179 exported). cloudflared rejects an
-# unpadded token outright, so the symptom was "connector will not start" with
-# nothing in the token, the file or the scope to explain it.
-# verify_env_roundtrip in `check` is the regression guard for this.
+# Add a key here when the CLI should read it, and to .env.example when a new
+# checkout needs a default. PUBLIC_URL is deliberately optional and absent from
+# the example.
+# The split is on the *first* `=` only, so a trailing `=` survives. The parser
+# trims surrounding whitespace and one pair of double quotes, but `check`
+# compares the raw line with the parsed value, so write values unquoted and
+# unpadded. `IFS='=' read -r key value` looks equivalent and is not: bash strips
+# a trailing delimiter, so an unpadded ...== token came back one character short
+# (180 chars on disk, 179 exported). cloudflared rejects an unpadded token
+# outright, so the symptom was "connector will not start" with nothing in the
+# token, the file or the scope to explain it. verify_env_roundtrip in `check`
+# is the regression guard for this.
 load_env() {
   [ -f "$ENV_FILE" ] || return 0
   local line key value
@@ -859,7 +863,7 @@ cmd_dev() {
   require_docker
   require_env_file
   require_tree_mount
-  heading "Dev server with live reload on http://127.0.0.1:${DEV_PORT:-3011}"
+  heading "Dev server with content/template reload on http://127.0.0.1:${DEV_PORT:-3011}"
   compose_dev run --rm --service-ports \
     -v "$ROOT:/app" \
     -e RACK_ENV=development \
@@ -914,7 +918,7 @@ ${C_BOLD}Development${C_RESET}
   test [rspec args]         Run the suite
   lint [standardrb args]    Run the linter
   shell                     A shell in the dev image
-  dev                       Live-reload server (needs Docker file sharing)
+  dev                       Content/template reload server (needs Docker file sharing)
 
 ${C_BOLD}Options${C_RESET}
   --tunnel / --no-tunnel    Include or exclude the cloudflared service

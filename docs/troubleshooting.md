@@ -172,7 +172,7 @@ The overlay marks `CF_TUNNEL_TOKEN` required, so Compose refuses to launch a
 tunnel without one. The CLI checks first and names the fix:
 
 ```bash
-bin/site cf-setup     # provision or rewrite the token
+CF_API_TOKEN=<token> bin/site cf-setup   # provision or rewrite the token
 # or run without the tunnel:
 bin/site up --no-tunnel
 ```

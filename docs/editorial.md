@@ -122,4 +122,5 @@ Some of this is checked automatically, and some of it is a review standard:
   a claim has been attributed.
 
 The automated checks catch the failures that are cheap to state. The rest is
-why [content authoring](content.md) ends with "read it as a reader would".
+why the [content authoring](content.md) checklist ends with "read it as a
+reader would".

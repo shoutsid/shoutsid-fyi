@@ -13,6 +13,8 @@ rights are reserved. That shapes what contributions are useful.
 - **Broken links** — especially a URL that has rotted since it was published.
 - **Accessibility issues** — keyboard navigation, contrast, semantics, reduced
   motion, screen-reader output.
+- **Feature requests** — as issues, especially changes that respect the
+  documented constraints.
 - **Bugs** in the application, the CLI, the container setup or the
   documentation.
 - **Security reports** — privately, following [SECURITY.md](SECURITY.md). Do
@@ -20,9 +22,10 @@ rights are reserved. That shapes what contributions are useful.
 
 ## What is not solicited
 
-- Feature pull requests that add a CMS, comments, analytics, a JavaScript
-  framework, a database or a contact form. The site's constraints are
-  deliberate; see [Architecture](docs/architecture.md).
+- Unsolicited feature pull requests. Open an issue first; proposals that add a
+  CMS, comments, analytics, a JavaScript framework, a database or a contact form
+  are unlikely to be accepted because the site's constraints are deliberate. See
+  [Architecture](docs/architecture.md).
 - Rewrites of the visual design or the copy.
 - Content that conflicts with [Editorial rules](docs/editorial.md), including
   usage numbers, revenue figures, benchmarks or adjectives such as
@@ -119,7 +122,10 @@ You confirm that:
 - you have the right to submit the work; and
 - you grant James Summerill a perpetual, worldwide, non-exclusive, royalty-free
   licence to use, modify, distribute and sublicense the contribution as part of
-  this repository, under the terms in [LICENSE](LICENSE).
+  this repository.
+
+No other licence is granted; the all-rights-reserved terms in
+[LICENSE](LICENSE) continue to apply to the repository as a whole.
 
 Do not submit code, images or text you do not have the right to contribute.
 

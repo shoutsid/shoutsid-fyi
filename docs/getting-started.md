@@ -149,7 +149,7 @@ Run `bin/site help` for the same list on the command line.
 | Command | What it does |
 |---|---|
 | `shell` | A shell in the dev image, with the working tree mounted. |
-| `dev` | Live-reload Puma server on port 3011, with a writable mount. |
+| `dev` | Development Puma server with content and template reload on port 3011, with a writable mount. |
 
 ## What to run before calling a change finished
 

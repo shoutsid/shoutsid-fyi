@@ -53,10 +53,11 @@ firewall:
 
 - **No write path.** There is no database, no session, no login, no file upload
   and no user-submitted text.
-- **No inbound port.** The container binds to loopback; the public edge is an
+- **No public inbound port.** Compose publishes the app on host loopback only;
+  the app listens on `0.0.0.0:3000` inside the private Compose network for the
   outbound Cloudflare Tunnel.
-- **Unprivileged runtime.** The app runs as uid 10001 with no shell and no home
-  directory.
+- **Unprivileged runtime.** The app runs as uid 10001 with no shell and no
+  writable home directory.
 - **Read-only root filesystem.** The only writable path is a 16 MB `tmpfs` for
   `/tmp`.
 - **No capabilities.** All capabilities are dropped and `no-new-privileges` is
