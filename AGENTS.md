@@ -60,6 +60,9 @@ about two seconds. See the trap about the runtime.
 | `views/` | ERB. `layout.erb` plus one template per route, partials under `partials/`. |
 | `public/` | CSS, JS, favicon, `robots.txt`, `llms.txt`, the social preview `og.png`, and the case-study figures: `screenshots/` for captures of the running services, `diagrams/` for authored drawings. Served directly, no asset pipeline. |
 | `spec/` | Routes, content invariants, whole-site integrity, response headers and the contrast of the palette. |
+| `docs/` | User-facing documentation: getting started, configuration, architecture, content authoring, deployment, testing, troubleshooting and the editorial rules. |
+| `README.md` | The project overview and quick start. It links to `docs/` rather than duplicating it; update both when a command or a constraint changes. |
+| `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md` | Repository policies surfaced by GitHub. |
 | `bin/site` | The CLI. Every documented operation is a subcommand; nothing is documented as "run X then Y". |
 | `bin/cf-setup.sh` | One-time Cloudflare tunnel and DNS provisioning. |
 | `bin/healthcheck.rb` | The container healthcheck, referenced by the Dockerfile. |

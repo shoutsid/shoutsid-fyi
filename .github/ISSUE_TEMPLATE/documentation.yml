@@ -1,0 +1,45 @@
+name: Documentation correction
+description: Report a wrong, stale or unclear statement in the documentation or on the site.
+title: "[Docs]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for a factual correction, a stale command, a broken link or
+        a passage that is unclear. For a wrong claim about a project, say what
+        the evidence is.
+
+  - type: input
+    id: location
+    attributes:
+      label: Where is the problem?
+      description: File, section heading or page URL.
+      placeholder: "docs/deployment.md, 'Token rotation'"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong?
+      description: Quote the sentence or command and explain the error.
+    validations:
+      required: true
+
+  - type: textarea
+    id: correction
+    attributes:
+      label: Suggested correction
+      description: What should it say instead? Link to evidence where the claim is factual.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked that the current documentation still says this.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true

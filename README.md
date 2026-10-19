@@ -1,243 +1,254 @@
+<div align="center">
+
 # shoutsid.fyi
 
-The portfolio site for James Summerill — Ruby on Rails and backend systems,
-with independent work in local AI and model-training research.
+**The portfolio site for James Summerill — Ruby on Rails, backend systems, and practical AI.**
 
-A Sinatra app with its content in YAML and Markdown, shipped in a pinned,
-unprivileged, read-only container, published through a Cloudflare Tunnel.
+A content-driven Sinatra application with no database and no write path, shipped as a pinned,
+unprivileged, read-only container and published through a Cloudflare Tunnel.
 
-- **Live:** <https://shoutsid.fyi>
-- **Stack:** Ruby 3.3, Sinatra 4, Puma, Kramdown — no database, no write path
-- **Public edge:** a dedicated Cloudflare Tunnel; the app's port is bound to
-  loopback and is not reachable from the network directly
+[Live site](https://shoutsid.fyi) · [Documentation](docs/README.md) · [Architecture](docs/architecture.md) · [Deployment](docs/deployment.md)
 
----
+[![Ruby 3.3.12](https://img.shields.io/badge/ruby-3.3.12-CC342D?logo=ruby&logoColor=white)](https://www.ruby-lang.org/)
+[![Sinatra 4](https://img.shields.io/badge/sinatra-4.x-000000)](https://sinatrarb.com/)
+[![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![RSpec](https://img.shields.io/badge/tested%20with-RSpec-CC342D)](https://rspec.info/)
+[![License: All rights reserved](https://img.shields.io/badge/license-all%20rights%20reserved-lightgrey)](LICENSE)
 
-## Requirements
+</div>
 
-Nothing but Docker. Ruby is **not** required on the host — a machine with no
-Ruby at all runs everything in a container.
+![shoutsid.fyi social preview](public/og.png)
 
-On this machine the tests do not start a container: `check`, `test` and `lint`
-run on the host Ruby when it matches the `Gemfile` pin and the locked gems are
-installed, and that is the fast path — see
-[Optional: a host Ruby](#optional-a-host-ruby-for-speed) below. The container is
-the fallback for when it does not, and it is where `shell` and `dev` always run.
-A run says which it used: `host Ruby <version> — no container` is the host path.
+## Contents
 
-File sharing matters only on the container path. There the dev image carries no
-source and the working tree is mounted over `/app`, so the project directory has
-to be on Docker Desktop's file-sharing list (**Settings → Resources → File
-sharing**). `build`, `up`, `verify` and `deploy` mount nothing at all.
+- [Overview](#overview)
+- [Design principles](#design-principles)
+- [Features](#features)
+- [Tech stack](#tech-stack)
+- [Quick start](#quick-start)
+- [Local development](#local-development)
+- [Project structure](#project-structure)
+- [Content model](#content-model)
+- [Testing and verification](#testing-and-verification)
+- [Deployment](#deployment)
+- [Security](#security)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
 
-| Tool | Version | Why |
-|---|---|---|
-| Docker Engine / Desktop | with the `compose` plugin | builds and runs everything |
-| `curl`, `python3` | any recent | used by `bin/site verify` and `bin/cf-setup.sh` |
-| A Cloudflare API token | once only | to create the tunnel and DNS records |
-| Ruby (optional) | the version `Gemfile` pins | makes `check` about 2s instead of Docker-dependent |
+## Overview
 
-### Optional: a host Ruby, for speed
+`shoutsid.fyi` is a personal portfolio and engineering blog. It presents project
+case studies, an experience history, a printable CV, and short posts on backend
+engineering and systems design.
 
-`check`, `test` and `lint` use the host Ruby when it is the version the `Gemfile`
-pins and the locked gems are installed, and a container otherwise. Both paths run
-the same suite; the host one skips a container start that has been measured on
-this machine at anything from 2 to 288 seconds.
+The site is deliberately small in surface area and strict in what it claims:
 
-```bash
-# RVM, which is what this machine uses. libyaml is built into ~/.rvm/usr first
-# because the content layer is YAML and psych needs its C extension.
-rvm pkg install libyaml
-rvm install 3.3.12 --with-libyaml-dir="$HOME/.rvm/usr"
-bundle install
-```
+- **No database, no sessions, no write path.** Every page is rendered from
+  YAML and Markdown committed to this repository.
+- **Content is data.** Project cards, case studies and page copy all read from
+  `config/*.yml`; templates render records rather than carry claims of their
+  own.
+- **Claims are evidence-based.** Each project carries a status, and a figure,
+  demo or benchmark has to be reproducible. The rules are in
+  [`docs/editorial.md`](docs/editorial.md).
+- **The runtime is hardened by default.** The production container runs
+  unprivileged, with a read-only root filesystem, all capabilities dropped, and
+  no inbound port exposed to the network.
 
-None of this is required, and none of it is taken on faith: the version is read
-from the `Gemfile` rather than assumed, `bundle check` has to pass, and any
-difference falls back to the container. `build`, `up`, `verify` and `deploy`
-never read the working tree and need neither a host Ruby nor file sharing.
+This repository is **source-available, not open source**. It is published so the
+implementation and its claims can be inspected. See [License](#license).
 
----
+## Design principles
+
+| Principle | How it shows up in the code |
+|---|---|
+| **One source of truth** | A project is defined once in `config/projects.yml`; the homepage, `/work` and its case-study page all render the same record. |
+| **Fail at boot, not in a card** | `lib/content.rb` validates every status, slug, section, link and figure file before the app serves a request. |
+| **Content over markup** | Page prose lives in `config/pages.yml` and is rendered through `page_copy`; a template carrying its own prose fails the suite. |
+| **Reproducible runtime** | Base images are pinned by digest, gems are locked, and the same test commands work on a host Ruby or in the dev container. |
+| **Verify the claim, not the status code** | `bin/site verify` checks page content, `bin/site links` checks external URLs, and `/healthz` reads the same content store the pages do. |
+| **The gate is one command** | `bin/site check` runs the linter and the full suite together, against the working tree. |
+
+## Features
+
+- **Content-driven pages** — homepage, About, Work index, project case studies,
+  blog, contact and a generated CV, all from one content store.
+- **Project case studies** — status badges, stack lists, highlights, optional
+  screenshots/diagrams, and a documented `demo` block containing a command and
+  the output it actually produced.
+- **Markdown blog** — YAML front matter, reading time, tags, drafts, an Atom
+  feed at `/blog/feed.xml`, and per-post metadata.
+- **Generated CV** — the same experience, projects, toolkit and education as
+  the rest of the site, laid out to print or save as PDF.
+- **SEO and machine-readable output** — canonical URLs, Open Graph metadata,
+  `sitemap.xml`, `robots.txt` and an [`llms.txt`](public/llms.txt) summary for
+  automated readers.
+- **Digest-versioned assets** — CSS and JavaScript URLs carry the file digest
+  and are served with a one-year immutable policy; generated pages revalidate.
+- **Strict security headers** — a restrictive CSP, `nosniff`, `DENY` framing,
+  a referrer policy and a permissions policy on every generated page.
+- **Operational tooling** — one CLI for build, run, deploy, tunnel management,
+  health, HTTP verification and external link checking.
+
+## Tech stack
+
+| Layer | Choice |
+|---|---|
+| Language | Ruby 3.3.12 |
+| Web framework | Sinatra 4.1 (`Sinatra::Base`) |
+| Application server | Puma 6.5 |
+| Templates | ERB through Tilt/Erubi, escaping on by default |
+| Markdown | Kramdown 2.5 with the GFM parser |
+| Content | YAML (`config/*.yml`) and Markdown (`content/blog/*.md`) |
+| Assets | Hand-written CSS and JavaScript, served from `public/` |
+| Tests | RSpec 3.13 with `rack-test` |
+| Lint | StandardRB |
+| Packaging | Multi-stage Dockerfile, Docker Compose |
+| Public edge | Cloudflare Tunnel (`cloudflared`) |
+
+There is no JavaScript framework, asset pipeline, database or background worker.
 
 ## Quick start
 
+### Requirements
+
+- Docker Engine or Docker Desktop with the Compose plugin
+- `curl` and `python3` on the host
+- A Cloudflare API token only when provisioning the public edge
+
+Ruby is **not required on the host**. `check`, `test` and `lint` use a matching
+host Ruby when one is available and fall back to the dev container otherwise.
+Both paths run the same suite. See
+[Local development](#local-development) for the fast path.
+
+### Run the site
+
 ```bash
-git clone <this repo> shoutsid-fyi
+git clone https://github.com/shoutsid/shoutsid-fyi.git
 cd shoutsid-fyi
 
-bin/site setup          # creates .env from .env.example
+bin/site setup          # writes .env from .env.example (mode 600)
 bin/site build          # builds the production image
 bin/site up --no-tunnel # starts the site on http://127.0.0.1:3010
-bin/site verify         # checks every page actually renders
+bin/site verify         # requests every page and checks the content
 bin/site check          # linter + full test suite
 ```
 
-That is the whole local loop. `--no-tunnel` is the default for `up`, so no
-Cloudflare credentials are needed to run or test the site.
+The published host port is **3010**, not 3000: the container always listens on
+3000, while the host port is configurable through `HOST_PORT`. Change it in
+`.env` if 3010 is already in use.
 
-### Why port 3010
+### Common commands
 
-Inside the container the app always listens on **3000**. On the host it is
-published on **3010** (`HOST_PORT` in `.env`), because this machine already
-runs Gitea on 3000 and `docker compose up` failing with "port is already
-allocated" is a poor first-run experience. Change `HOST_PORT` if 3010 is taken.
-
----
-
-## Deploying to shoutsid.fyi
-
-The public edge is a Cloudflare Tunnel. The app is never exposed directly, so
-there is no inbound port to open, no certificate to renew and no reverse proxy
-to keep patched.
-
-### 1. One-time: provision the tunnel (needs a Cloudflare API token)
-
-Create a custom API token at **Cloudflare dashboard → My Profile → API Tokens →
-Create Custom Token** with exactly these permissions:
-
-| Scope | Permission |
+| Command | Purpose |
 |---|---|
-| Account | Cloudflare Tunnel | Edit |
-| Zone | DNS | Edit |
-| Zone | Zone | Read |
+| `bin/site help` | Full command reference |
+| `bin/site build` | Build the production image |
+| `bin/site up [--tunnel\|--no-tunnel]` | Start the stack |
+| `bin/site down [--volumes]` | Stop the stack |
+| `bin/site verify [--local\|--public]` | Check every page over HTTP |
+| `bin/site check` | **The gate:** StandardRB + RSpec |
+| `bin/site test [rspec args]` | Run the suite |
+| `bin/site lint [standardrb args]` | Run the linter |
+| `bin/site links` | Check every external URL in `config/` and `content/` |
+| `bin/site deploy` | Build, start, health-check, verify locally and publicly |
+| `bin/site dev` | Live-reload development server on port 3011 |
+| `bin/site shell` | Shell in the dev image with the working tree mounted |
 
-`shoutsid.fyi` must already be delegated to Cloudflare (its nameservers are
-`liv.ns.cloudflare.com` and `pablo.ns.cloudflare.com`).
+Every command is documented in [Getting started](docs/getting-started.md#command-reference)
+and in `bin/site help`.
 
-```bash
-CF_API_TOKEN=<token> bin/site cf-setup           # dry run first if you like:
-CF_API_TOKEN=<token> bin/site cf-setup --dry-run
-```
+## Local development
 
-This is idempotent and safe to re-run. It:
+### Fast path: a host Ruby
 
-1. verifies the token and resolves the zone and account;
-2. creates a dedicated tunnel named `shoutsid-fyi` (or reuses it);
-3. sets the tunnel's remotely-managed ingress for `shoutsid.fyi` and
-   `www.shoutsid.fyi`, forwarding to `http://web:3000` on the compose network;
-4. creates proxied CNAME records for the apex and `www` pointing at
-   `<tunnel-id>.cfargotunnel.com`;
-5. writes `CF_TUNNEL_TOKEN` into `.env` (mode 600).
-
-**Why a dedicated tunnel rather than a hostname on the existing `webcap`
-tunnel:** `webcap.shoutsid.fyi` is served by a tunnel run from the host under
-its own cron watchdog. Joining it would make this site's uptime a function of
-that project's process. One tunnel per site means one site's watchdog cannot
-take the other down.
-
-### 2. Every deploy
+`check`, `test` and `lint` prefer a host Ruby that is the exact version in the
+`Gemfile` and has the locked gems installed. The suite itself takes under a
+second; a container start does not.
 
 ```bash
-bin/site deploy
+# RVM. libyaml is built into ~/.rvm/usr first because the content layer is YAML.
+rvm pkg install libyaml
+rvm install 3.3.12 --with-libyaml-dir="$HOME/.rvm/usr"
+bundle install
+
+bin/site check
 ```
 
-Builds the image, starts the site and the tunnel, waits for the container's own
-healthcheck, then verifies every page locally and again through
-`https://shoutsid.fyi`. If the public check does not pass within 60 seconds it
-says so and leaves the local site running — a newly created DNS record can take
-a few minutes to resolve.
+A run prints `host Ruby <version> — no container` when it takes this path.
+`--host` and `--docker` force the choice; `--rebuild` and `--no-build` control
+the dev image. If the host Ruby is missing, the wrong version, or missing the
+locked gems, the CLI says so and falls back to the container.
 
-Other ways in:
+### Container path
+
+The dev image carries the Ruby toolchain and gems and **no source**. The working
+tree is mounted over `/app` at run time, so what runs is what is on disk and
+editing a template or spec never triggers a rebuild. On Docker Desktop the
+project directory must be on the file-sharing list
+(**Settings → Resources → File sharing**).
 
 ```bash
-bin/site deploy --no-build     # restart without rebuilding
-bin/site deploy --no-tunnel    # local only
-bin/site tunnel status         # is the tunnel container up, and what is it saying?
-bin/site tunnel logs           # follow the tunnel
+bin/site test spec/app_spec.rb   # one file
+bin/site lint                    # StandardRB only
+bin/site shell                   # interactive shell in the dev image
 ```
 
----
+### Live reload
 
-## CLI reference
-
-`bin/site help` prints this too.
-
-| Command | What it does |
-|---|---|
-| `setup` | Copies `.env.example` to `.env` (mode 600). Safe to re-run; never overwrites. |
-| `cf-setup` | One-time Cloudflare tunnel + DNS provisioning. Needs `CF_API_TOKEN`. |
-| `lock` | Regenerates `Gemfile.lock` in a container and copies it out. |
-| `build [--no-cache]` | Builds the production image. |
-| `up [--tunnel\|--no-tunnel] [--build]` | Starts the site, optionally with the tunnel. |
-| `down [--volumes]` | Stops the stack. |
-| `restart` | Restarts and waits for health. |
-| `ps` / `logs [service]` | Container status and logs. |
-| `deploy [--no-tunnel] [--no-build]` | Build → start → health → verify local and public. |
-| `tunnel up\|down\|restart\|logs\|status` | Manages the `cloudflared` container alone. |
-| `health` | Prints the app's `/healthz` response. |
-| `verify [--local\|--public]` | Every page must be 200, a bad path must be 404, and the homepage must name the subject. |
-| `check` | **The gate:** `standardrb` plus the whole RSpec suite, as one invocation. |
-| `test [args]` / `lint [args]` | The suite or the linter alone. |
-| `shell` | A shell in the dev image, over the mounted working tree. |
-| `dev` | Live-reload server (a writable mount; same file-sharing requirement). |
-
-`check`, `test` and `lint` take `--host` or `--docker` to force where they run,
-and `--rebuild` / `--no-build` to control the dev image.
-| `version` | Prints the site name and `APP_VERSION`. |
-
----
-
-## Architecture
-
+```bash
+bin/site dev   # http://127.0.0.1:3011
 ```
+
+`bin/site dev` needs Docker and a writable mount of the working tree. The
+production path (`build`, `up`, `verify`, `deploy`) mounts nothing.
+
+## Project structure
+
+```text
 .
-├── app.rb                  Sinatra app: routes, helpers, error handlers
-├── config.ru               Rack entrypoint
+├── app.rb                      Sinatra routes, helpers, error handlers, headers
+├── config.ru                   Rack entrypoint
 ├── lib/
-│   ├── content.rb          loads and validates all content (the only reader of config/)
-│   └── markdown.rb         the one Kramdown configuration
+│   ├── content.rb              content loading, normalisation and validation
+│   ├── markdown.rb             the single Kramdown configuration
+│   └── cache_policy.rb         conditional Cache-Control middleware
 ├── config/
-│   ├── profile.yml         identity, links, principles
-│   ├── projects.yml        every project card and case study
-│   ├── experience.yml      roles, education, skills
-│   ├── pages.yml           page and section prose
-│   └── puma.rb             server configuration
-├── content/blog/*.md       posts, YAML front matter + Markdown
-├── views/                  ERB templates (layout, pages, partials, errors)
-├── public/                 CSS, JS, favicon, robots.txt, llms.txt
-│   ├── og.png              the social preview image, checked at boot
-│   ├── screenshots/        captures of the running services
-│   └── diagrams/           authored drawings, labelled as drawings
-├── spec/                   RSpec: routes, content invariants, site integrity
+│   ├── profile.yml             identity, links, principles
+│   ├── projects.yml            every project card and case study
+│   ├── experience.yml          roles, education, toolkit
+│   ├── pages.yml               page and section prose
+│   └── puma.rb                 application server configuration
+├── content/blog/*.md           posts: YAML front matter + Markdown
+├── views/                      ERB layout, pages, partials and error pages
+├── public/                     CSS, JS, favicon, robots.txt, llms.txt, og.png
+│   ├── screenshots/            captures of running services
+│   └── diagrams/               authored drawings, labelled as drawings
+├── spec/                       routes, content invariants, site integrity, harness
+├── docs/                       user and contributor documentation
 ├── bin/
-│   ├── site                the CLI
-│   ├── cf-setup.sh         Cloudflare provisioning
-│   └── healthcheck.rb      container healthcheck
-├── Dockerfile              base / lock / dev / build / runtime stages
-├── docker-compose.yml      the site (+ an optional dev service)
+│   ├── site                    the CLI
+│   ├── cf-setup.sh             one-time Cloudflare provisioning
+│   └── healthcheck.rb          the container healthcheck
+├── Dockerfile                  base, lock, dev, build and runtime stages
+├── docker-compose.yml          the site and an optional dev service
 └── docker-compose.tunnel.yml   the Cloudflare Tunnel overlay
 ```
 
-### Content is data
+## Content model
 
-Everything the site says lives in `config/*.yml` and `content/blog/*.md`.
-Templates read records; they do not contain claims — including the sentences
-that describe a section, which live in `config/pages.yml` and are rendered
-through `page_copy`. `spec/site_integrity_spec.rb` fails on a template that
-carries a literal run of six or more words, so the rule is enforced rather
-than merely intended.
-
-That one is worth stating plainly, because the intention alone did not hold.
-Eight templates carried prose of their own, and the homepage advertised "a
-deployed service and two public engineering projects" for a while after a
-third repository was added — a sentence describing the content was in no
-position to be checked against it.
-
-This matters for one specific reason: the same project appears on the homepage,
-in the work index and on its own page, and the badge that says **Research** must
-not say **Live** on one of them. The status is written once, and the badge
-label, the caveat under it and the callout styling all derive from that one
-value. `lib/content.rb` also refuses to load an unknown status, so the mistake
-is a startup failure rather than a blank card nobody notices.
-
-Adding a project means editing `config/projects.yml` — there is no template to
-touch:
+All substantive copy and every claim lives in `config/*.yml` and
+`content/blog/*.md`. Adding a project means editing one YAML file — there is no
+template to touch.
 
 ```yaml
 - slug: my-project
   title: My project
   status: live          # live | public | research | in-progress
   featured: true
+  section: main         # main | systems | archive
   year: "2026"
   tagline: One line.
   summary: >
@@ -252,205 +263,121 @@ touch:
       url: https://github.com/...
 ```
 
-Both of the following are optional, and both are about giving a reader
-something to inspect rather than another paragraph. A figure is a claim, so a
-capture must come from the running service, a drawing must say it is a drawing,
-and the loader refuses to boot if the file is not on disk:
+Optional `screenshots` entries must point at a file under `public/` and carry
+`label`, `path` and `alt`; optional `demo` entries carry `title`, `request` and
+`response`. Both are validated at boot.
 
-```yaml
-  screenshots:
-    - label: The landing page, captured from the running service.
-      path: /screenshots/my-project.png
-      alt: "The landing page: a headline, a curl example and a pricing table."
+The full schema, the section rules and the blog post format are in
+[Content authoring](docs/content.md). The rules for what may be claimed are in
+[Editorial rules](docs/editorial.md).
 
-  demo:
-    title: The endpoint, called live
-    request: curl "https://my-project.example/v1/thing"
-    response: |-
-      200 {"ok":true,"version":"1"}
-```
-
-The homepage's "Selected work" grid and `/work`'s first grid are the *same*
-group, read from one field on each project:
-
-```yaml
-- slug: webcap
-  section: main        # main | systems | archive
-```
-
-`main` is the curated first grid on both pages, `systems` is the "Research and
-Experimental Systems" section, and `archive` is "More projects". One field
-rather than a separate ordering list, because a second list is exactly how the
-two pages drifted apart once: the homepage led with Rails while `/work` had
-four projects ahead of it, so the same project read as prominent on one page and
-incidental on the other. A section nobody renders, or a content file with
-nothing in `main`, is a boot failure rather than a card that silently never
-appears. Order within a section is file order, so `config/projects.yml` is kept
-grouped by section, each group in the order it should render.
-
-### Docker
-
-- **Pinned by digest.** `ruby:3.3-slim@sha256:…` and
-  `cloudflare/cloudflared@latest@sha256:…`. A rebuild in six months is the same
-  image, not whatever the tag happens to point at.
-- **Multi-stage.** The compiler that builds Puma's extension is in the build
-  stage, not the runtime layer. The runtime image has no `gcc`.
-- **Unprivileged.** Runs as uid 10001 with no shell and no home directory.
-- **Read-only root filesystem** with a 16 MB `tmpfs` for `/tmp`; all
-  capabilities dropped and `no-new-privileges` set. The app writes nothing, so
-  any attempt to write is an immediate, loud failure.
-- **Healthcheck in the image**, not in Compose, so it cannot drift from the
-  image it describes. `bin/healthcheck.rb` asks `/healthz`, which reads the
-  same content store the pages read.
-
-### Why the tunnel is a separate Compose file
-
-`docker-compose.tunnel.yml` is layered on only when the tunnel is wanted:
+## Testing and verification
 
 ```bash
-docker compose -f docker-compose.yml \
-               -f docker-compose.tunnel.yml up -d
+bin/site check     # config round-trip + StandardRB + full RSpec suite
+bin/site verify    # every page returns 200, a bad path returns 404
+bin/site links     # external URLs in config/ and content/ resolve
 ```
 
-Its `CF_TUNNEL_TOKEN` is marked required (`:?`), so Compose refuses to start the
-tunnel without one instead of launching something that cannot connect. Keeping
-that in an overlay rather than the base file means the hard failure does not
-also block `docker compose build`, `bin/site check` or any local command before
-the tunnel has been provisioned.
+| Gate | What it catches |
+|---|---|
+| `check` | Style, routes, content invariants, internal links, asset integrity, cache policy, security headers and the test harness itself |
+| `verify` | A container or tunnel that builds but does not actually serve complete pages |
+| `links` | A URL pointing at somebody else's service that has rotted since the last check |
 
-### Security headers
+`check` is the contract. It runs against the working tree, on the host Ruby when
+that is provably equivalent and in a container otherwise. It cannot pass
+without running examples: `spec_helper` sets `fail_if_no_examples`, and the
+container runner refuses to run against an unmounted tree.
 
-Every response carries a strict CSP (`default-src 'self'`, `script-src 'self'`,
-`frame-ancestors 'none'`), `X-Content-Type-Options`, `X-Frame-Options` and a
-referrer policy. Because the CSP allows no inline scripts, the theme is set by
-an external `/js/theme-boot.js` — loaded before the stylesheet so the first
-paint is already in the right palette.
+The suite covers four layers:
 
----
+- **Routes** — every page, project, post, feed, sitemap, health endpoint and
+  security header.
+- **Content invariants** — the same rules the app enforces at boot, including
+  their failure cases.
+- **Site integrity** — every internal link resolves, every referenced asset is
+  served, every page has a title, description and canonical URL, and no template
+  syntax leaks into rendered output.
+- **The harness** — the dev image, the mount and the no-examples guard that
+  make the other layers trustworthy.
 
-## Content and editorial rules
+See [Testing](docs/testing.md) for the full test map and the reasoning behind
+the guards.
 
-Claims on this site must be evidence-based. The rules are in
-[`docs/editorial.md`](docs/editorial.md); the short version:
+## Deployment
 
-- Lead with software engineering; AI is a differentiator, not the whole identity.
-- Mark every project **Live**, **Public repo**, **Research** or **In progress**.
-- No usage, revenue or benchmark numbers unless they are reproducible and
-  published here.
-- Give each major project something to inspect: a capture of the running
-  service, a diagram of the architecture, or a command and the output it
-  actually produced. If a run also failed, the failure is published with it.
-- Personal circumstances behind the career break are not published; the
-  technical work during it is.
-
-## Testing
+The public edge is a Cloudflare Tunnel. The app binds to loopback only; there
+is no inbound port, no certificate to renew and no reverse proxy to patch.
 
 ```bash
-bin/site check     # config round-trip + lint + full suite
-bin/site test      # suite only
-bin/site lint      # standardrb only
+# One-time, with a scoped Cloudflare API token:
+CF_API_TOKEN=<token> bin/site cf-setup
+
+# Every deploy:
+bin/site deploy
 ```
 
-The suite's example count is deliberately not quoted here. It was, and it went
-stale twice in one afternoon: a number in prose is one more thing to keep in
-step with the code, and the copy that goes stale is the one a reader trusts.
+`cf-setup` creates a dedicated tunnel, configures remotely-managed ingress for
+the apex and `www`, writes proxied CNAME records and stores the tunnel token in
+`.env` (mode 600). It is idempotent.
 
-`check`, `test` and `lint` run against the working tree: on the host when a
-matching Ruby is installed, otherwise in a container with the tree bind-mounted
-read-only over `/app`. `shell` is always the container, over that same mount.
-Which one is used, and why, is under
-[Optional: a host Ruby](#optional-a-host-ruby-for-speed) above.
+`deploy` builds the image, starts the site and tunnel, waits for the app's
+health endpoint, verifies every page locally, then verifies again through
+`https://shoutsid.fyi`.
 
-The dev image holds the Ruby toolchain and the locked gems and nothing else, so
-editing a template, a spec or a post invalidates nothing and triggers no
-rebuild. Only the build inputs — `Dockerfile`, `Gemfile`, `Gemfile.lock`,
-`.dockerignore` — are hashed into `.dev-image-digest`, and only a change there
-forces a build. `--rebuild` forces one anyway, `--no-build` trusts the image
-already present.
+The full runbook — token scopes, tunnel operations, rollback, DNS timing and
+the one-connector rule — is in [Deployment](docs/deployment.md).
 
-Lint and the suite run as a single invocation, so they share one boot. Lint runs
-first, so a style failure does not wait on the tests. `--host` and `--docker`
-force where they run.
+## Security
 
-Two guards exist because this arrangement can fail in a way that looks like
-success. With no source in the image, a run that failed to mount sees an empty
-`/app` — and `rspec` with no spec files exits 0 reporting "0 examples, 0
-failures". `bin/site` refuses to run unless `/app/app.rb` is present, and
-`spec_helper` sets `fail_if_no_examples`, so a suite that ran nothing fails
-instead of passing without having tested anything.
+- The runtime image runs as uid 10001 with no interactive shell and no writable
+  home directory.
+- The root filesystem is read-only, with a 16 MB `tmpfs` for `/tmp`.
+- All Linux capabilities are dropped and `no-new-privileges` is set.
+- The app has no database, no sessions, no user input and no write path.
+- Every generated page carries a strict CSP and hardening headers.
+- Secrets reach the container through `env_file`, never through an image layer.
 
-A third guard covers the host path. The container pins `LANG=C.UTF-8` and the
-content layer depends on it — under Ruby's US-ASCII default the em dashes in
-`config/experience.yml` raise "invalid byte sequence in US-ASCII" and 35
-examples fail with nothing pointing at the cause. `bin/site` sets the locale
-whenever the caller's is not already UTF-8, and `harness_spec` asserts the
-encoding so the next person sees the reason rather than 35 reds.
+To report a vulnerability, follow [SECURITY.md](SECURITY.md). Please do not open
+a public issue for a security problem.
 
-`check` first compares every `.env` key the CLI reads against the file itself
-(a parser that silently mangles a secret is otherwise only visible as a
-`cloudflared` that will not start). It then runs the suite, which covers four
-things:
+## Documentation
 
-- **Routes** — every page, every project, every post, plus 404s, the Atom feed,
-  the sitemap, `/healthz` and the security headers.
-- **Content invariants** — the same checks the app makes at boot, driven
-  directly, including the failure cases (unknown status, duplicate slug, no
-  featured project, a link that is not a URL, a post with no summary).
-- **Site integrity** — every internal link found on every page resolves, every
-  asset the layout references is served, every page has a title, a description
-  and a canonical URL, and no page leaks template syntax or comment text into
-  its rendered output. That last one exists because a truncated ERB comment
-  did exactly that while every other test passed.
-- **The harness** — that the dev image is built from the gems and no source,
-  that every command which runs code goes through the one mount, and that a run
-  which collected no examples cannot exit 0. These describe the arrangement that
-  runs the other three, and each of them failed as a *green run* before it was
-  fixed — which is why they are asserted rather than trusted.
+| Document | Contents |
+|---|---|
+| [Getting started](docs/getting-started.md) | Prerequisites, first run, command reference, host and container runtimes |
+| [Configuration](docs/configuration.md) | Every environment variable, `.env` handling and runtime settings |
+| [Architecture](docs/architecture.md) | Request flow, content model, caching, headers and container topology |
+| [Content authoring](docs/content.md) | YAML schemas, blog posts, figures, demos and validation rules |
+| [Deployment](docs/deployment.md) | Cloudflare provisioning, deploy and verify, tunnel operations |
+| [Testing](docs/testing.md) | Test layers, the gate, runtime selection and harness guards |
+| [Troubleshooting](docs/troubleshooting.md) | Port conflicts, tunnelling, file sharing, locale and deployment failures |
+| [Editorial rules](docs/editorial.md) | What this site may and may not claim |
+| [Contributing](CONTRIBUTING.md) | Scope, bug reports, pull requests and the review gate |
+| [Security policy](SECURITY.md) | Reporting a vulnerability and the security posture |
+| [Changelog](CHANGELOG.md) | Notable changes by version |
 
-Ruby files use [standard](https://github.com/standardrb/standard); there is no
-style configuration file, deliberately.
+## Contributing
 
----
+This is a personal portfolio, published for reference. Corrections to factual
+claims, accessibility fixes, broken-link reports and bug reports are welcome.
+Feature pull requests are not solicited, and the site's editorial rules apply to
+content changes. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the
+[Code of Conduct](CODE_OF_CONDUCT.md) before opening an issue or pull request.
 
-## Troubleshooting
+## License
 
-**`port is already allocated` on `bin/site up`** — something on the host owns
-`HOST_PORT`. Find it (`ss -ltnp | grep :3010`) and change `HOST_PORT` in `.env`.
+Copyright © 2026 James Summerill. **All rights reserved.**
 
-**A new page 404s after a deploy** — the production image bakes in the source,
-so a stale image runs stale content. `bin/site build` (or `bin/site deploy`,
-which builds first).
+The source code, configuration, written content and images in this repository
+are published for reference only. No permission is granted to copy, modify,
+distribute, sublicense or reuse them, in whole or in part, except as permitted
+by applicable law or with prior written permission. See [LICENSE](LICENSE).
 
-**The public URL does not answer** — the local site being healthy means the
-problem is the edge:
+## Acknowledgements
 
-```bash
-bin/site tunnel status
-bin/site tunnel logs
-```
-
-A newly created DNS record can take a few minutes to resolve. Verify the
-records with `dig +short shoutsid.fyi` and `dig +short www.shoutsid.fyi`; both
-should return Cloudflare addresses.
-
-**`bin/site shell`, `bin/site dev`, or a `check|test|lint` run that fell back to
-the container cannot see the working tree** — the container path bind-mounts the
-project directory over `/app`, and Docker Desktop only mounts directories on its
-file-sharing list. Add it in **Docker Desktop → Settings → Resources → File
-sharing** and restart Docker. The host path mounts nothing, and the production
-path (`build`, `up`, `verify`, `deploy`) mounts nothing and is unaffected.
-
-**`check` took minutes and said nothing about a container** — it chose the
-container because the host Ruby was missing, the wrong version, or without the
-locked gems. `bin/site check` prints `host Ruby <version> — no container` when it
-uses the host, so the absence of that line is the explanation. Run
-`bundle install`, or see [Optional: a host Ruby](#optional-a-host-ruby-for-speed).
-
-**`invalid byte sequence in US-ASCII` from `lib/content.rb`** — Ruby is reading
-the content as US-ASCII because no UTF-8 locale is set. The container pins
-`LANG=C.UTF-8`; `bin/site` sets it for the host path, so this only appears when
-rspec is run directly from a shell without one. Run `LANG=C.UTF-8 bundle exec
-rspec` to confirm.
-
-**Ruby is not installed on this host** — by design. `bin/site check` runs the
-suite in the dev image; `bin/site shell` gives you a prompt in it.
+Built with [Sinatra](https://sinatrarb.com/), [Puma](https://puma.io/),
+[Kramdown](https://kramdown.gettalong.org/), [Erubi](https://github.com/jeremyevans/erubi),
+[RSpec](https://rspec.info/) and [StandardRB](https://github.com/standardrb/standard).
+The Cloudflare Tunnel is run with [cloudflared](https://github.com/cloudflare/cloudflared).

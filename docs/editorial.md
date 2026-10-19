@@ -1,9 +1,14 @@
 # Editorial rules
 
+[Documentation index](README.md) · [Content authoring](content.md)
+
 The point of this site is that it can be taken at face value. A portfolio that
 overstates is worse than a shorter one, because the first interviewer question
 exposes it. These are the rules the content follows, and the reason a few things
 are conspicuously absent.
+
+This page is policy, not style advice. Read it before adding a project, changing
+a status, quoting a number or writing a case study.
 
 ## The test for any sentence
 
@@ -102,3 +107,19 @@ Where a project was informed by someone else's work, say so. The Rails modular
 monolith project credits the Rootstrap reference implementation. Where a project
 is inspired by a commercial product, say so and disclaim affiliation — see the
 city-simulation project in `config/projects.yml`.
+
+## Where the rules are enforced
+
+Some of this is checked automatically, and some of it is a review standard:
+
+- **Checked at boot:** known project statuses, required fields, figure files,
+  link formats and the shape of every record.
+- **Checked by the suite:** internal links on every rendered page, template
+  prose, the palette's contrast, cache policy and the health endpoint's content
+  counts.
+- **Reviewed by a person:** whether a sentence is reproducible, whether a
+  status is honest, whether a figure proves what the caption says, and whether
+  a claim has been attributed.
+
+The automated checks catch the failures that are cheap to state. The rest is
+why [content authoring](content.md) ends with "read it as a reader would".

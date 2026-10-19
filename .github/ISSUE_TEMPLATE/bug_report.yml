@@ -1,0 +1,75 @@
+name: Bug report
+description: Report a reproducible problem with the site, CLI, container setup or documentation.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Please do not include secrets — especially
+        `CF_TUNNEL_TOKEN`, `CF_API_TOKEN` or any value from `.env`.
+
+        For a security vulnerability, follow [SECURITY.md](https://github.com/shoutsid/shoutsid-fyi/blob/main/SECURITY.md)
+        and email privately instead of opening a public issue.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the problem.
+      placeholder: "Running `bin/site check` failed with..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The exact commands or clicks, in order.
+      placeholder: |
+        1. Run `bin/site setup`
+        2. Run `bin/site build`
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What you expected to happen instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Output of the commands below, with secrets redacted.
+      render: shell
+      placeholder: |
+        $ bin/site version
+        $ bin/site check
+        $ bin/site ps
+    validations:
+      required: false
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Docker version, and whether the host or container runtime was used.
+      placeholder: "Ubuntu 24.04, Docker 27.3, host Ruby 3.3.12"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and the documentation.
+          required: true
+        - label: I removed every secret and `.env` value from this report.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
