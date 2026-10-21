@@ -23,18 +23,19 @@ RSpec.describe ShoutsidFyi::App do
       expect(last_response.body).to include("Experimental")
     end
 
-    # The grid leads with the Rails work. The roles being applied for are Rails
-    # roles, and that entry is the one showing an established background applied
-    # to architecture rather than described in the abstract — Webcap is the
-    # stronger product, but it is not the pitch. A reorder of
-    # config/projects.yml moved this once already, which is why the position is
-    # pinned here rather than left to a comment asking politely.
-    it "leads the work grid with the Rails work and then Webcap" do
+    # The grid leads with the Ruby work. The roles being applied for are Ruby
+    # and Rails roles, so the Rails case study, the Rails service and its Ruby
+    # clients come before the TypeScript service — the strongest product is
+    # not the pitch. A reorder of config/projects.yml moved this once already,
+    # which is why the position is pinned here rather than left to a comment
+    # asking politely.
+    it "leads the work grid with the Ruby work and puts Webcap last" do
       grid = last_response.body[/Selected work.*?Engineering experience/m]
 
       expect(grid).not_to be_nil, "expected a Selected work section"
-      expect(grid.scan(%r{<h3 class="card-title">\s*<a href="/work/([a-z0-9-]+)"}m).flatten)
-        .to start_with("rails-modular-monolith", "webcap")
+      slugs = grid.scan(%r{<h3 class="card-title">\s*<a href="/work/([a-z0-9-]+)"}m).flatten
+      expect(slugs.first).to eq("rails-modular-monolith")
+      expect(slugs.last).to eq("webcap")
     end
 
     it "renders the grid from the same section `/work` leads with" do

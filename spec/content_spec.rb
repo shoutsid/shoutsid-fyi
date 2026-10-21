@@ -237,13 +237,14 @@ RSpec.describe ShoutsidFyi::Content do
       expect(described_class::SECTIONS).to eq(%w[main systems archive])
     end
 
-    # The Rails reader should meet, in this order: the architecture case study,
-    # the two deployed services, then the agent-tooling service and the two
-    # clients released from it — the corpus and the ladder first, then the
-    # miner that grows one and the upgrader that walks the other.
+    # The Ruby work should meet a Ruby reader first, in this order: the
+    # architecture case study, the deployed Rails service, then the two Ruby
+    # clients released from it — the corpus and the ladder, the miner that
+    # grows one and the upgrader that walks the other. The TypeScript service
+    # follows, because the ordering throughout the site leads with Ruby.
     it "leads with the Rails work, the deployed services and the agent tooling" do
       expect(described_class.projects_in_section("main").map { |p| p["slug"] })
-        .to eq(%w[rails-modular-monolith webcap agents-fyi miner upgrader])
+        .to eq(%w[rails-modular-monolith agents-fyi miner upgrader webcap])
     end
 
     it "keeps the systems work and the research out of the first grid" do

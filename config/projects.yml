@@ -1,5 +1,10 @@
 # Every project card, project page and homepage section renders from here.
 #
+# Order within a section is the order it renders, and the main section leads
+# with the Ruby work: the Rails case study, then the Rails service and its Ruby
+# clients. The TypeScript service follows them, because this portfolio is
+# pitched at Ruby and Rails roles.
+#
 # `status` is one of: live | public | research | in-progress (see
 # lib/content.rb STATUSES — the badge label and the caveat under it are chosen
 # from the same value, so a research project cannot be presented as shipped).
@@ -49,66 +54,6 @@ projects:
     posts:
       - boundaries-in-a-rails-app-nobody-is-rewriting
       - the-outbox-is-a-table-not-a-library
-
-  - slug: webcap
-    title: Webcap
-    status: live
-    featured: true
-    section: main
-    year: "2026 — present"
-    tagline: Developer API for web capture, extraction and monitoring.
-    summary: >
-      An HTTP API for capturing web pages as screenshots or documents,
-      extracting structured content, and watching pages for changes. Built to be
-      called from scripts and software agents, with a public free preview and
-      pay-per-call access rather than a required account.
-    highlights:
-      - Capture a page as PNG, JPEG or PDF.
-      - Full-page scroll capture as WebM video, for demos and archiving.
-      - Extract titles, headings, links, paragraphs and Markdown into structured responses.
-      - Batch extraction across multiple URLs.
-      - SEO and link-health audit per URL.
-      - Schedule repeated captures or extractions and alert on change via webhook.
-      - Pay-per-call access using the x402 flow, settled in USDC on Base.
-    # The response below was called live before publishing, and the word count
-    # is what the service actually returned. It previously read 123, which the
-    # running service has never returned — a number nobody could reproduce, on
-    # a site whose argument is that its claims can be. Abridged: the real body
-    # also carries the full markdown, headings, links and allowance headers.
-    demo:
-      title: The free preview endpoint, called live (abridged)
-      request: curl "https://webcap.shoutsid.fyi/v1/extract/preview?url=https://example.com/"
-      response: |-
-        200 {"url":"https://example.com/",
-             "preview":{"title":"Example Domain",
-                        "wordCount":25,
-                        "markdown":"This domain is for use in documentation examples..."},
-             "truncated":true,"cached":true}
-    screenshots:
-      - label: The public landing page, captured from the running service.
-        path: /screenshots/webcap.png
-        alt: "The webcap landing page: a headline reading 'Screenshot any URL', a curl example, a feature grid, and per-call pricing."
-    notes: >
-      Deployed and publicly reachable. The public site documents the endpoints
-      and the payment flow; this page describes the service rather than
-      claiming customers or usage.
-    stack: [TypeScript, Node.js, Fastify, Playwright, SQLite, x402]
-    links:
-      - label: webcap.shoutsid.fyi
-        url: https://webcap.shoutsid.fyi/
-      - label: Run the free preview (returns JSON)
-        url: https://webcap.shoutsid.fyi/v1/extract/preview?url=https://example.com/
-      # Repointed from /docs, which 404s. The service never served that path:
-      # its own landing page links to /quickstart and /openapi.json, and both
-      # answer 200. A dead link on a card whose status is `live` is the one
-      # claim nothing here could check for itself, which is why `bin/site
-      # links` now exists.
-      - label: Quick start and API reference
-        url: https://webcap.shoutsid.fyi/quickstart
-      - label: OpenAPI schema
-        url: https://webcap.shoutsid.fyi/openapi.json
-    posts:
-      - what-changes-when-your-caller-is-an-agent
 
   - slug: agents-fyi
     title: agents.shoutsid.fyi
@@ -178,7 +123,9 @@ projects:
   # The two clients, released as their own repositories. They sit after the
   # service they call rather than beside it: the card order tells the system's
   # story — the corpus and the ladder, then the miner that grows one and the
-  # upgrader that walks the other. Both are public to read and proprietary:
+  # upgrader that walks the other. Webcap follows them rather than leading the
+  # grid: it is a deployed service, and TypeScript, and the ordering here leads
+  # with the Ruby work. Both clients are public to read and proprietary:
   # "Public repo" is the status label's meaning (source on GitHub and readable)
   # and the notes carry the licence, because the two are easy to conflate.
   - slug: miner
@@ -297,6 +244,66 @@ projects:
       - walking-rails-from-4-0-to-8-1
       - a-client-is-a-caller-not-a-component
       - a-refusal-is-an-output
+
+  - slug: webcap
+    title: Webcap
+    status: live
+    featured: true
+    section: main
+    year: "2026 — present"
+    tagline: Developer API for web capture, extraction and monitoring.
+    summary: >
+      An HTTP API for capturing web pages as screenshots or documents,
+      extracting structured content, and watching pages for changes. Built to be
+      called from scripts and software agents, with a public free preview and
+      pay-per-call access rather than a required account.
+    highlights:
+      - Capture a page as PNG, JPEG or PDF.
+      - Full-page scroll capture as WebM video, for demos and archiving.
+      - Extract titles, headings, links, paragraphs and Markdown into structured responses.
+      - Batch extraction across multiple URLs.
+      - SEO and link-health audit per URL.
+      - Schedule repeated captures or extractions and alert on change via webhook.
+      - Pay-per-call access using the x402 flow, settled in USDC on Base.
+    # The response below was called live before publishing, and the word count
+    # is what the service actually returned. It previously read 123, which the
+    # running service has never returned — a number nobody could reproduce, on
+    # a site whose argument is that its claims can be. Abridged: the real body
+    # also carries the full markdown, headings, links and allowance headers.
+    demo:
+      title: The free preview endpoint, called live (abridged)
+      request: curl "https://webcap.shoutsid.fyi/v1/extract/preview?url=https://example.com/"
+      response: |-
+        200 {"url":"https://example.com/",
+             "preview":{"title":"Example Domain",
+                        "wordCount":25,
+                        "markdown":"This domain is for use in documentation examples..."},
+             "truncated":true,"cached":true}
+    screenshots:
+      - label: The public landing page, captured from the running service.
+        path: /screenshots/webcap.png
+        alt: "The webcap landing page: a headline reading 'Screenshot any URL', a curl example, a feature grid, and per-call pricing."
+    notes: >
+      Deployed and publicly reachable. The public site documents the endpoints
+      and the payment flow; this page describes the service rather than
+      claiming customers or usage.
+    stack: [TypeScript, Node.js, Fastify, Playwright, SQLite, x402]
+    links:
+      - label: webcap.shoutsid.fyi
+        url: https://webcap.shoutsid.fyi/
+      - label: Run the free preview (returns JSON)
+        url: https://webcap.shoutsid.fyi/v1/extract/preview?url=https://example.com/
+      # Repointed from /docs, which 404s. The service never served that path:
+      # its own landing page links to /quickstart and /openapi.json, and both
+      # answer 200. A dead link on a card whose status is `live` is the one
+      # claim nothing here could check for itself, which is why `bin/site
+      # links` now exists.
+      - label: Quick start and API reference
+        url: https://webcap.shoutsid.fyi/quickstart
+      - label: OpenAPI schema
+        url: https://webcap.shoutsid.fyi/openapi.json
+    posts:
+      - what-changes-when-your-caller-is-an-agent
 
   - slug: act
     title: Adaptive Computational Topology (ACT)
