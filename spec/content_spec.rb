@@ -249,7 +249,7 @@ RSpec.describe ShoutsidFyi::Content do
 
     it "keeps the systems work and the research out of the first grid" do
       expect(described_class.projects_in_section("systems").map { |p| p["slug"] })
-        .to eq(%w[act evo16 planetary-matrix])
+        .to eq(%w[act evo16])
     end
 
     it "puts every project in exactly one section" do
