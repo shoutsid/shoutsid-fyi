@@ -92,11 +92,15 @@ that would look good on it. The two lists are easy to confuse when writing a
 skills section, and the confusion is expensive: a toolkit line is a claim, and it
 is a claim an interviewer tests with a single question.
 
-So Rails 7, Rails 8, Hotwire, Solid Queue and Kamal are absent on purpose. The
-public Rails work stops at 5.2, and the return to current versions is being made
-now, which makes those words aspirational rather than true. They get added when
-there is a project, a client or a repository that can be pointed at — not when
-the release notes have been read.
+Rails 7 and Rails 8 used to be absent here on the same reasoning: the public
+Rails work stopped at 5.2, and naming the newer versions would have been
+aspirational. That is no longer the state. The agents.shoutsid.fyi service is a
+Rails 8.1 application at a public URL, and the upgrader walks an application's
+own `Gemfile.lock` forward to 8.1; the versions are nameable now because there
+is a project to point at, which is the test this rule always stated. Hotwire
+passes the same test — the service's own admin UI uses Turbo and Stimulus —
+while Solid Queue and Kamal stay off the list, because no project here uses
+them.
 
 The same test applies to the role titles and the headline. If a line cannot be
 reproduced from something else on the site, it is either rewritten or deleted.

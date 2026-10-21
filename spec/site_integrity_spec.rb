@@ -254,7 +254,7 @@ RSpec.describe "site integrity" do
 
     it "gives files whose URL cannot change with their content a short TTL" do
       %w[/og.png /favicon.svg /robots.txt /llms.txt /screenshots/webcap.png
-        /diagrams/rails-outbox.svg].each do |path|
+        /diagrams/rails-outbox.svg /diagrams/agents-fyi-system.svg].each do |path|
         get path
 
         expect(last_response.status).to eq(200)

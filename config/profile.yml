@@ -28,9 +28,9 @@ summary: >
   version and dependency upgrades that ship in steps rather than as a rewrite,
   domain boundaries the build enforces, and integrations with the legacy
   systems those applications cannot leave behind. Ten years of backend work,
-  most of it Rails in production. Since 2024 I have also built independent,
-  local-first AI and agent tooling — some of it deployed as public services,
-  some of it still research.
+  most of it Rails in production. Since 2024 I have also built independent
+  AI and agent tooling — some of it deployed as public services, some of it
+  still research.
 
 # The short version, rendered in the hero, on the contact page and on the CV.
 # It is an offer rather than a preference: what a reader is scanning for is
@@ -60,8 +60,8 @@ site:
   description: >
     Senior software engineer with 10+ years in Ruby on Rails and backend
     systems: framework and dependency upgrades, modular architecture with
-    boundaries the build enforces, legacy integration, and independent
-    local-first AI and agent tooling.
+    boundaries the build enforces, legacy integration, and independent AI and
+    agent tooling.
 
 # Shown on the About page under "How I work". Each line is a claim about
 # practice, not a claim about outcomes.

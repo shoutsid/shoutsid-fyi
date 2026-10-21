@@ -3,7 +3,7 @@
 > Senior software engineer with 10+ years in Ruby on Rails and backend
 > systems: framework and dependency upgrades, modular architecture with
 > boundaries the build enforces, legacy integration, and independent
-> local-first AI and agent tooling. This site is a portfolio: project case
+> AI and agent tooling. This site is a portfolio: project case
 > studies, an experience history, and a blog.
 >
 > Available for senior backend and Rails engineering roles in the United

@@ -86,6 +86,10 @@ about two seconds. See the trap about the runtime.
   to send the reader off the site.
 - **Every post has a title, a summary and a non-empty body**, and posts are
   sorted newest first.
+- **A project's write-ups are published posts.** `posts` names them by slug;
+  the project page derives the title and URL from the post, and `validate!`
+  refuses a slug that is not published. A linked draft would be a dead link in
+  production.
 - **Every internal link on every page resolves**, and every asset the layout
   references is served. This is the test that catches a deleted route or a
   renamed stylesheet.

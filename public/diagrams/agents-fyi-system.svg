@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 820" role="img"
+     aria-labelledby="agents-fyi-system-title" preserveAspectRatio="xMidYMid meet">
+  <title id="agents-fyi-system-title">The agents-fyi service, its clients and the one path in</title>
+
+  <!-- An authored diagram, not a capture. The palette is carried in the file
+       because an SVG in an img cannot read the page's theme; the OS preference
+       is the only signal available to it. -->
+  <style>
+    .bg     { fill: #fffdf8; }
+    .panel  { fill: #f6f2e9; stroke: #c9bfa9; }
+    .box    { fill: #fffdf8; stroke: #8a2f0b; }
+    .box-hi { fill: #f4e4d2; stroke: #8a2f0b; }
+    .ink    { fill: #1d1a14; }
+    .muted  { fill: #5d5546; }
+    .accent { fill: #8a2f0b; }
+    .arrow  { stroke: #8a2f0b; fill: none; }
+    .dash   { stroke: #8a2f0b; fill: none; stroke-dasharray: 6 5; }
+    .head   { fill: #8a2f0b; }
+    .t-h    { font: 600 15px ui-sans-serif, system-ui, sans-serif; }
+    .t-l    { font: 600 14px ui-sans-serif, system-ui, sans-serif; }
+    .t-m    { font: 500 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .t-s    { font: 400 13px ui-sans-serif, system-ui, sans-serif; }
+    .t-xs   { font: 400 12px ui-sans-serif, system-ui, sans-serif; }
+    @media (prefers-color-scheme: dark) {
+      .bg     { fill: #1c1812; }
+      .panel  { fill: #241f17; stroke: #4a4235; }
+      .box    { fill: #241f17; stroke: #e08a5f; }
+      .box-hi { fill: #3a2a1b; stroke: #e08a5f; }
+      .ink    { fill: #ece3d0; }
+      .muted  { fill: #a99e88; }
+      .accent { fill: #e08a5f; }
+      .arrow  { stroke: #e08a5f; }
+      .dash   { stroke: #e08a5f; }
+      .head   { fill: #e08a5f; }
+    }
+  </style>
+
+  <defs>
+    <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" class="head"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1160" height="820"/>
+
+  <!-- ---------------------------------------------------------- one path in -->
+  <rect class="panel" x="30" y="40" width="290" height="520" rx="10"/>
+  <text class="t-l accent" x="48" y="72">One path in</text>
+
+  <rect class="box" x="50" y="90" width="250" height="80" rx="8"/>
+  <text class="t-l ink" x="175" y="122" text-anchor="middle">Cloudflare edge</text>
+  <text class="t-s muted" x="175" y="146" text-anchor="middle">TLS, WAF, proxied CNAME</text>
+
+  <line class="arrow" x1="175" y1="170" x2="175" y2="198" marker-end="url(#tip)"/>
+
+  <rect class="box" x="50" y="200" width="250" height="70" rx="8"/>
+  <text class="t-l ink" x="175" y="228" text-anchor="middle">outbound-only tunnel</text>
+  <text class="t-s muted" x="175" y="250" text-anchor="middle">no inbound ports, no public IP</text>
+
+  <line class="arrow" x1="175" y1="270" x2="175" y2="298" marker-end="url(#tip)"/>
+
+  <rect class="box" x="50" y="300" width="250" height="70" rx="8"/>
+  <text class="t-l ink" x="175" y="328" text-anchor="middle">cloudflared</text>
+  <text class="t-s muted" x="175" y="350" text-anchor="middle">connector for agents-fyi</text>
+
+  <line class="dash" x1="175" y1="370" x2="175" y2="418" marker-end="url(#tip)"/>
+  <text class="t-xs muted" x="188" y="397">second ingress rule ^/mcp</text>
+
+  <rect class="box" x="50" y="420" width="250" height="80" rx="8"/>
+  <text class="t-l ink" x="175" y="452" text-anchor="middle">mcp</text>
+  <text class="t-s muted" x="175" y="476" text-anchor="middle">Streamable HTTP endpoint</text>
+
+  <text class="t-xs muted" x="175" y="536" text-anchor="middle">the service's port is bound to loopback;</text>
+  <text class="t-xs muted" x="175" y="553" text-anchor="middle">the tunnel is the only way in</text>
+
+  <!-- -------------------------------------------------------------- service -->
+  <rect class="box-hi" x="380" y="150" width="380" height="210" rx="10"/>
+  <text class="t-h ink" x="404" y="184">service</text>
+  <text class="t-m accent" x="404" y="206">Rails 8.1 — one database</text>
+  <text class="t-s muted" x="404" y="234">the corpus: reports, fixes and their evidence</text>
+  <text class="t-s muted" x="404" y="256">the Rails upgrade ladder, as data</text>
+  <text class="t-s muted" x="404" y="278">the mining queue and its reasons</text>
+  <text class="t-s muted" x="404" y="300">operator keys, not administrator tokens</text>
+  <text class="t-s muted" x="404" y="330">the service decides what a reading means;</text>
+  <text class="t-s muted" x="404" y="348">it has no route to a package index</text>
+
+  <line class="arrow" x1="570" y1="360" x2="570" y2="408" marker-end="url(#tip)"/>
+
+  <rect class="box" x="380" y="410" width="380" height="90" rx="8"/>
+  <text class="t-l ink" x="570" y="442" text-anchor="middle">PostgreSQL 16</text>
+  <text class="t-s muted" x="570" y="466" text-anchor="middle">no published port</text>
+  <text class="t-s muted" x="570" y="486" text-anchor="middle">the clients have no route to it</text>
+
+  <line class="arrow" x1="300" y1="335" x2="376" y2="290" marker-end="url(#tip)"/>
+  <text class="t-m muted" x="308" y="322">http://service:8001</text>
+
+  <!-- -------------------------------------------------------------- clients -->
+  <rect class="panel" x="840" y="40" width="290" height="640" rx="10"/>
+  <text class="t-l accent" x="858" y="72">Clients — callers, not peers</text>
+
+  <rect class="box" x="860" y="90" width="250" height="76" rx="8"/>
+  <text class="t-l ink" x="985" y="118" text-anchor="middle">miner</text>
+  <text class="t-s muted" x="985" y="142" text-anchor="middle">executes differentials;</text>
+  <text class="t-s muted" x="985" y="158" text-anchor="middle">files, solves and verifies</text>
+
+  <rect class="box" x="860" y="186" width="250" height="64" rx="8"/>
+  <text class="t-l ink" x="985" y="212" text-anchor="middle">verifier</text>
+  <text class="t-s muted" x="985" y="234" text-anchor="middle">checks a report as reported</text>
+
+  <rect class="box" x="860" y="270" width="250" height="64" rx="8"/>
+  <text class="t-l ink" x="985" y="296" text-anchor="middle">verifier-independent</text>
+  <text class="t-s muted" x="985" y="318" text-anchor="middle">re-derives the claim by search</text>
+
+  <rect class="box" x="860" y="354" width="250" height="64" rx="8"/>
+  <text class="t-l ink" x="985" y="380" text-anchor="middle">upgrader</text>
+  <text class="t-s muted" x="985" y="402" text-anchor="middle">walks the ladder, one rung at a time</text>
+
+  <text class="t-xs muted" x="985" y="452" text-anchor="middle">operator keys over the compose network;</text>
+  <text class="t-xs muted" x="985" y="469" text-anchor="middle">no database password, no route to db</text>
+
+  <rect class="box" x="860" y="500" width="250" height="80" rx="8"/>
+  <text class="t-l ink" x="985" y="532" text-anchor="middle">PyPI · RubyGems · GitHub</text>
+  <text class="t-s muted" x="985" y="556" text-anchor="middle">the clients have the egress;</text>
+  <text class="t-s muted" x="985" y="572" text-anchor="middle">the service has none</text>
+
+  <line class="dash" x1="985" y1="500" x2="985" y2="422" marker-end="url(#tip)"/>
+
+  <!-- the four clients reach the service's public API -->
+  <line class="arrow" x1="860" y1="128" x2="764" y2="200" marker-end="url(#tip)"/>
+  <line class="arrow" x1="860" y1="218" x2="764" y2="238" marker-end="url(#tip)"/>
+  <line class="arrow" x1="860" y1="302" x2="764" y2="278" marker-end="url(#tip)"/>
+  <line class="arrow" x1="860" y1="386" x2="764" y2="318" marker-end="url(#tip)"/>
+  <text class="t-xs muted" x="812" y="176" text-anchor="middle">public API</text>
+
+  <!-- --------------------------------------------------------------- legend -->
+  <line class="arrow" x1="380" y1="720" x2="440" y2="720" marker-end="url(#tip)"/>
+  <text class="t-xs muted" x="452" y="724">HTTPS or HTTP request</text>
+  <line class="dash" x1="660" y1="720" x2="720" y2="720" marker-end="url(#tip)"/>
+  <text class="t-xs muted" x="732" y="724">outbound tunnel / egress</text>
+  <text class="t-xs muted" x="380" y="760">An authored diagram of the deployment, not a capture of it.</text>
+</svg>

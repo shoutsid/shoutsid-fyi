@@ -61,6 +61,18 @@
     </section>
   <% end %>
 
+  <% writing = project_posts(@project) %>
+  <% if writing.any? %>
+    <section class="case-section" aria-labelledby="writing-heading">
+      <h2 id="writing-heading">Writing</h2>
+      <ul class="link-list">
+        <% writing.each do |post| %>
+          <li><a href="<%= post.url %>"><%= post.title %></a></li>
+        <% end %>
+      </ul>
+    </section>
+  <% end %>
+
   <% if @project["links"].any? %>
     <section class="case-section" aria-labelledby="links-heading">
       <h2 id="links-heading">Links</h2>

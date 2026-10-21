@@ -55,7 +55,8 @@ blog:
   # commit. It names the register instead.
   intro: >-
     Short pieces on backend engineering and systems design, from the decisions
-    behind this site to holding a boundary in a long-lived Rails application.
+    behind this site to the evidence behind an upgrade, an integration or an
+    agent.
 
 about:
   # This note existed to apologise for four City Electrical Factors entries whose

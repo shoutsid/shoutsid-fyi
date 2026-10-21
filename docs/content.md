@@ -85,7 +85,8 @@ and as a case study at `/work/<slug>`.
 | `highlights` | no | list of strings | Capabilities or engineering facts |
 | `notes` | no | string | Status and caveats, rendered in a callout |
 | `stack` | no | list of strings | Technologies |
-| `links` | no | list of `{label, url}` | Absolute URLs |
+| `links` | no | list of `{label, url}` | Absolute URLs or root-relative paths on this site |
+| `posts` | no | list of strings | Post slugs rendered under Writing; each must be a published post |
 | `screenshots` | no | list | See below |
 | `demo` | no | map | See below |
 
@@ -297,7 +298,8 @@ the path is validated at boot and again from the rendered page.
 2. Choose `status` from the four known values and set `featured` deliberately.
 3. Add `screenshots` under `public/screenshots/` or `public/diagrams/`, or a
    `demo` with a command and its real output.
-4. Add absolute links; `bin/site links` will probe them.
+4. Add links — absolute URLs, or a root-relative path on this site — and the
+   slugs of any published posts that write the project up.
 5. Update `config/pages.yml` only if the section prose needs to change.
 6. Run `bin/site check` and `bin/site links`.
 7. Run `bin/site build && bin/site up --no-tunnel && bin/site verify` if the

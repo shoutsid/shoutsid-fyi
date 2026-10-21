@@ -46,6 +46,9 @@ projects:
         url: https://github.com/shoutsid/rails_modular_monolith
       - label: Reference implementation it was informed by
         url: https://github.com/rootstrap/rails-modular-monolith-with-ddd/tree/saga-with-outbox-component
+    posts:
+      - boundaries-in-a-rails-app-nobody-is-rewriting
+      - the-outbox-is-a-table-not-a-library
 
   - slug: webcap
     title: Webcap
@@ -104,6 +107,8 @@ projects:
         url: https://webcap.shoutsid.fyi/quickstart
       - label: OpenAPI schema
         url: https://webcap.shoutsid.fyi/openapi.json
+    posts:
+      - what-changes-when-your-caller-is-an-agent
 
   - slug: agents-fyi
     title: agents.shoutsid.fyi
@@ -113,78 +118,185 @@ projects:
     year: "2026 — present"
     tagline: A shared knowledge exchange for agents, where a claim is only verified when someone else reproduces it.
     summary: >
-      A service holding the breaking changes, undocumented errors and signature
-      surprises that release notes do not cover, together with the fix that
-      actually worked. Reports are filed by agents and operators, and one is
-      only marked resolved_verified once other operators independently
+      A Rails service holding the breaking changes, undocumented errors and
+      signature surprises that release notes do not cover, together with the fix
+      that actually worked. Reports are filed by agents and operators, and one
+      is only marked resolved_verified once other operators independently
       reproduce it, so the confirmation count has evidence under it rather than
-      being a number. It is a Rails application: the domain code is split into
-      packages whose boundaries the build enforces, and the same service answers
-      what a Rails upgrade crosses and which call sites a release breaks in the
-      caller's own files.
+      being a number. The service also holds the Rails upgrade ladder and the
+      mining queue; the miner that grows the corpus and the upgrader that walks
+      the ladder are separate repositories that reach this API as ordinary
+      callers.
     highlights:
-      - "Verification is executable: two services run beside the miner and execute a claim against the releases it is about, recording what the interpreter said."
-      - GET /reports/{id} returns that recorded evidence alongside the report itself.
-      - Clients are not peers — the miner has no database password and no route to the database.
-      - The corpus is grown by executing one release of a package against the next and filing what is new, rather than by scraping release notes.
-      - GET /rails/upgrade plans a move from the documented ladder plus what the corpus has actually observed; POST /rails/scan finds the call sites a release breaks in the caller's own files.
+      - "Verification is executable: every confirmation is an execution, returned with the environment it ran in and the evidence the operator gave."
+      - Reports declare what they are about — a package, a hosted service, a platform or the agent harness itself.
+      - "The corpus is grown by clients, not by the service: the service decides what is new and what a reading means, and has no route to a package index."
+      - GET /api/rails/upgrade plans a move from the documented ladder plus what the corpus has actually observed; POST /api/rails/scan finds the call sites a release breaks in the caller's own files.
       - An MCP server over stdio and a hosted Streamable HTTP endpoint, so agents can search, read, file and verify reports as tools.
-      - Published through a Cloudflare Tunnel from a host with no inbound ports and no public IP.
+      - Published through a Cloudflare Tunnel from a host with no inbound ports and no public IP; the database publishes no port and the clients hold no database password.
     demo:
-      title: The served root, from the running service (abridged)
-      request: curl -s https://agents.shoutsid.fyi/
-      response: |
-        {"service":"agents.shoutsid.fyi","version":"1.0.0",
-         "endpoints":{"search":"GET /reports/search?q=",
-                      "report":"GET /reports/{id}",
-                      "verify":"POST /reports/{id}/verify"}}
+      # The root served this JSON until the service grew a portal; it now
+      # redirects to a sign-in page and the endpoint map lives at /api. The old
+      # demo named a command that no longer produces its own output, which is
+      # exactly what `bin/site links` cannot see.
+      title: The service index, called live (abridged)
+      request: curl -s https://agents.shoutsid.fyi/api
+      response: |-
+        200 {"service":"agents.shoutsid.fyi","version":"1.0.0","environment":"production",
+             "endpoints":{"health":"/api/health","ready":"/api/ready",
+                          "register":"POST /api/operators/register",
+                          "submit":"POST /api/reports",
+                          "search":"GET /api/reports/search?q=",
+                          "report":"GET /api/reports/{id}",
+                          "verify":"POST /api/reports/{id}/verify"}}
+    screenshots:
+      - label: The service, its clients and the one path in. An authored diagram.
+        path: /diagrams/agents-fyi-system.svg
+        alt: "A diagram of the agents-fyi deployment: the Cloudflare edge and an outbound-only tunnel reach a Rails service with one database; a second ingress rule reaches an MCP endpoint; PostgreSQL publishes no port; and four clients — the miner, two verifiers and the upgrader — reach the service's public API with operator keys, have the egress the service does not, and have no database password or route to the database."
     notes: >
-      Deployed and publicly reachable. Described as a knowledge exchange rather
-      than a corpus with a population: the verification rule is the claim, and
-      what is not claimed is a user count or a coverage figure.
-    stack: [Ruby on Rails, Packwerk, PostgreSQL, Docker Compose, Cloudflare Tunnel, MCP]
+      Deployed and publicly reachable. The service holds the corpus and the
+      ladder; the miner and the upgrader are separate repositories, images and
+      licences, and neither is part of the service's build. Described as a
+      knowledge exchange rather than a corpus with a population: the
+      verification rule is the claim, and what is not claimed is a user count or
+      a coverage figure.
+    stack: [Ruby on Rails 8.1, Packwerk, PostgreSQL, Docker Compose, Cloudflare Tunnel, MCP]
     links:
       - label: agents.shoutsid.fyi
         url: https://agents.shoutsid.fyi/
+      - label: The miner that grows the corpus
+        url: /work/miner
+      - label: The upgrader that walks the ladder
+        url: /work/upgrader
+    posts:
+      - a-bug-report-is-a-differential
+      - what-an-mcp-server-owes-a-model
+      - walking-rails-from-4-0-to-8-1
+      - porting-a-live-service-one-route-at-a-time
+      - a-client-is-a-caller-not-a-component
 
-  # A public repository rather than a deployed service, and it sits in the main
-  # section because it is the pillar the AI differentiator is argued on: the
-  # claim it makes is the verification model, not a model's own report of
-  # success. Described from the project's README and architecture notes, and
-  # making no benchmark or quality claim of its own.
-  - slug: local-coder
-    title: Local coding-agent infrastructure
+  # The two clients, released as their own repositories. They sit after the
+  # service they call rather than beside it: the card order tells the system's
+  # story — the corpus and the ladder, then the miner that grows one and the
+  # upgrader that walks the other. Both are public to read and proprietary:
+  # "Public repo" is the status label's meaning (source on GitHub and readable)
+  # and the notes carry the licence, because the two are easy to conflate.
+  - slug: miner
+    title: agents-fyi miner
+    status: public
+    featured: false
+    section: main
+    year: "2026"
+    tagline: Finds real failures by executing one release of a package against the next.
+    summary: >
+      A Ruby client that installs two releases of a package, asks each what its
+      public callables accept, and executes the same call against both. When the
+      older release accepts the call and the newer one refuses it by name, the
+      interpreter's own traceback is filed — but only after the corpus says the
+      finding is new. It also answers open reports with an executed fix and
+      confirms other operators' reports by reproducing them, as one of two
+      independent methods.
+    highlights:
+      - "A finding is arithmetic: the same call was executed against both releases, and the traceback filed with the report is the interpreter's output from the refusing run."
+      - "mine needs no corpus and files nothing; publish asks the service whether each finding is new, and --dry-run asks without writing."
+      - Findings are clustered by mechanism, because one upstream decision can rename an argument across eleven callables.
+      - A replacement argument is executed before it is offered; a rename is only claimed when a candidate is built from every word of the old name, and a tie is refused.
+      - "The two verifiers run the same image under their own accounts: one executes the call sites the report names, the other re-derives the claim from the two releases and ignores the report's prose."
+      - "The ledger is state, not a cache: a pair that failed is retried, a pair that was examined is not, and an unbuildable release is stamped with the interpreter and whether a compiler was present."
+    demo:
+      title: A differential, run on one package
+      request: ./bin/agents-fyi-miner mine --package httpx --from 0.27.2 --to 0.28.1
+      response: |-
+        httpx 0.28.1: httpx 0.28.1 removed the app= argument (2 call site(s), 0 repaired)
+        httpx 0.28.1: httpx 0.28.1 renamed proxies= to proxy= (11 call site(s), 11 repaired)
+        httpx 0.28.1: httpx 0.28.1 removed the http2= argument (1 call site(s), 0 repaired)
+        httpx 0.28.1: httpx 0.28.1 removed the cert= argument (9 call site(s), 0 repaired)
+        found 4 finding(s); nothing was filed
+    notes: >
+      Public to read and proprietary: the source is published so operators and
+      reviewers can read the client, not as open source. Execution proves a
+      reference, not behaviour — a release that changes what a call does without
+      changing its signature is invisible here, and a value a release rejects is
+      not what this finds. The two confirmations are independent executions by
+      two methods on one machine, not two parties.
+    stack: [Ruby, Python, PyPI, RubyGems, Docker]
+    links:
+      - label: GitHub
+        url: https://github.com/shoutsid/miner
+      - label: The service it files into
+        url: /work/agents-fyi
+      - label: Design notes, with the measurements that changed it
+        url: https://github.com/shoutsid/miner/blob/main/docs/design-notes.md
+    posts:
+      - a-bug-report-is-a-differential
+      - the-corpus-stopped-growing
+      - a-wheel-is-an-artifact-an-environment-is-evidence
+
+  - slug: upgrader
+    title: agents-fyi upgrader
     status: public
     featured: true
     section: main
     year: "2026"
-    tagline: A fully local coding agent where the tests, not the model, decide whether a change passed.
+    tagline: Moves a Rails application one release at a time, and records what the move cost.
     summary: >
-      A local-first coding-agent stack sized for a consumer GPU and 8 GiB of
-      memory: role-separated agents for exploration, planning, implementation,
-      repair and review, run one at a time through stable logical model routes.
-      Each run happens in an isolated Git worktree and is preserved for review,
-      and a trusted evaluator — not the model — decides whether the change is
-      acceptable.
+      A Ruby client of the agents-fyi service that reads an application's
+      Gemfile.lock, asks the service what a move crosses, and applies only what
+      the service calls mechanical. It runs the application's suite before and
+      after the move on a working copy it owns, and records the patch, every
+      command with its exit code, the interpreter it ran on and the decisions a
+      machine may not make. The ladder — what each Rails release changed and
+      which of those changes a machine may make — lives in the service, not in
+      the client.
     highlights:
-      - "A fully local stack — llama.cpp behind stable logical routes (fast, plan, review, reason) — sized for a 6 GB-class GPU and 8 GiB of system memory."
-      - Role-separated agents for exploration, planning, implementation, repair and review, rather than one general prompt.
-      - Isolated Git worktrees per run, preserved for review; the runtime never commits, merges or pushes.
-      - "Black, Flake8, pytest, protected tests and git diff --check are authoritative — the model does not decide whether its own changes pass."
-      - SQLite records runs, traces, artifacts, verification and decisions, so what happened can be re-read rather than trusted.
-      - Prompt changes follow an audited lifecycle with a holdout gate and an explicit activation decision the candidate cannot make for itself.
+      - plan splits a move into mechanical changes and decisions for a person; step executes one rung and never writes to the caller's own repository.
+      - "The client keeps no copy of Rails' release order, and there is no default service: a walker that quietly used its author's deployment would answer from a corpus the caller did not choose."
+      - A pass is a suite green before the move and green after it, on a named interpreter, with the baseline, the commands, their exit codes and the patch in the record.
+      - "Exit status is part of the contract: 0 for a plan or a pass, 2 for a refusal about the move, 1 for a failure about the repository, the service or the machine. unverified exits 1."
+      - preview renders the review brief a stored record would publish, with no checkout, token or push; republish re-renders delivered pull requests from their records.
+      - "The repository is public to read and proprietary: no use, copying or redistribution is licensed."
+    demo:
+      title: A plan for a public Rails application, called live (abridged)
+      request: ./bin/agents-fyi-upgrader plan --repo https://github.com/shoutsid/biddingapp --to 7.1.0 --api https://agents.shoutsid.fyi
+      response: |-
+        https://github.com/shoutsid/biddingapp at eaa823724dd1c074550aa5dc887f0b7ccd1f64eb
+        on Rails 4.0.0.rc1, read from `rails` in Gemfile.lock
+        Ruby floor this move needs: 2.7.0 (Rails 7.0.0 requires it; per step below)
+        9 step(s): Rails 4.1 -> Rails 4.2 -> Rails 5.0 -> Rails 5.1 -> Rails 5.2 -> Rails 6.0 -> Rails 6.1 -> Rails 7.0 -> Rails 7.1
+
+        == Rails 4.1 (4.0.0 -> 4.1.0)
+           requires Ruby 1.9.3 or newer
+           10 documented change(s): 0 a machine can apply, 10 need a decision
+           decide: render :text -> render plain: / render html: / render body: (renamed; 4.0 → 4.1, Rendering content from string) [raises by your target]
+           …
+           executed here: 0 — nothing this corpus executed falls inside this step's window, so the list above is Rails' own guide rather than a finding
+
+        == Rails 5.0 (4.2.0 -> 5.0.0)
+           requires Ruby 2.2.2 or newer
+           17 documented change(s): 5 a machine can apply, 12 need a decision
+           apply:  before_filter -> before_action (renamed; 5.0, controller filters) [raises by your target]
+           …
+           executed here: 0 — nothing this corpus executed falls inside this step's window, so the list above is Rails' own guide rather than a finding
+
+        == Rails 7.1 (7.0.0 -> 7.1.0)
+           …
     notes: >
-      Independent work with public source, described at the level of the
-      architecture and the verification model. No benchmark, usage or code
-      quality claim is made here, and none of it is presented as employment.
-    stack: [Python, llama.cpp, LiteLLM, DSPy, smolagents, SQLite, Git worktrees]
-    screenshots:
-      - label: The stack and its trust boundary, drawn from the project's own architecture notes.
-        path: /diagrams/local-coder.svg
-        alt: "A layered diagram: llama.cpp serving one local model profile at a time; a model service manager switching between profiles; LiteLLM exposing stable fast, plan, review and reason routes; role-separated explorer, planner, implementer, repairer and reviewer agents; a native editor applying validated replacements; an isolated Git worktree per run; and a trusted evaluator running Black, Flake8, pytest and protected tests, with a SQLite store recording runs, artifacts and verification."
+      Public to read and proprietary. A pass says the application's suite was
+      green before the move and green after it, on the machine the step ran on;
+      it is not independent verification, and it is not a statement that the
+      move is correct for every caller.
+    stack: [Ruby, Rails, Docker, Git, GitHub]
     links:
       - label: GitHub
-        url: https://github.com/shoutsid-lab/local-coder
+        url: https://github.com/shoutsid/upgrader
+      - label: The service its ladder comes from
+        url: /work/agents-fyi
+      - label: Design notes, including the failures that changed the shape
+        url: https://github.com/shoutsid/upgrader/blob/main/docs/design-notes.md
+    posts:
+      - walking-rails-from-4-0-to-8-1
+      - a-client-is-a-caller-not-a-component
+      - a-refusal-is-an-output
 
   - slug: act
     title: Adaptive Computational Topology (ACT)
@@ -215,6 +327,8 @@ projects:
     links:
       - label: GitHub
         url: https://github.com/shoutsid/act-lab
+    posts:
+      - an-experiment-that-can-say-no
 
   # Research rather than public. The source is readable, but the question the
   # project is about — whether complexity or replication emerges — has not been
@@ -298,6 +412,8 @@ projects:
     links:
       - label: GitHub
         url: https://github.com/shoutsid/planetary-matrix
+    posts:
+      - sharding-a-planet
 
   - slug: townhall
     title: Townhall

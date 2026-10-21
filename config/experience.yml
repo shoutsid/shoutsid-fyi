@@ -22,8 +22,8 @@ roles:
     location: County Durham, United Kingdom
     summary: >
       Took a career break for personal reasons and continued independent
-      development on selected projects: deployed developer tools, local-first
-      AI and agent infrastructure, and experimental systems research.
+      development on selected projects: deployed developer tools, AI and agent
+      infrastructure, and experimental systems research.
     # Deliberately two lines. The project list used to be repeated here, which
     # put four projects in front of the Rails history for a reader deciding
     # whether to keep reading — and made /about disagree with /work about what
@@ -102,11 +102,11 @@ education:
 # than a keyword wall. The frontend/adjacent group is deliberately short: this
 # is a backend portfolio.
 #
-# Nothing here is aspirational. Rails 7/8, Hotwire, Solid Queue and Kamal are
-# absent on purpose: the public Rails work stops at 5.2 and the return to the
-# newer versions is being made now, so claiming them here would be the one thing
-# this site's rules exist to prevent — a line an interviewer can unpick in a
-# single question.
+# Nothing here is aspirational. The version words live on the project cards,
+# where a reader can point at the thing: agents.shoutsid.fyi is a Rails 8.1
+# application and the upgrader walks an application to 8.1, so "Rails 8" is no
+# longer a claim this site cannot carry. Solid Queue and Kamal stay off the list
+# because no project here uses them — see docs/editorial.md.
 skills:
   - group: Languages & frameworks
     items: [Ruby, Ruby on Rails, Python, SQL, JavaScript, TypeScript]

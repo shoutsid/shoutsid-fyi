@@ -299,6 +299,12 @@ module ShoutsidFyi
       # The optional {label, path} rendered beside a page's copy.
       def page_link(section, key) = Content.pages.dig(section, key) || {}
 
+      # A project names its write-ups by slug; the title and URL come from the
+      # post itself, so a renamed post cannot leave a stale label behind.
+      def project_posts(project)
+        Array(project["posts"]).filter_map { |slug| Content.post(slug) }
+      end
+
       def markdown(source) = Markdown.render(source)
 
       def format_tags(tags) = Array(tags).join(", ")

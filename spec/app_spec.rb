@@ -158,6 +158,14 @@ RSpec.describe ShoutsidFyi::App do
       end
     end
 
+    it "links a project's write-ups by the post's own title and URL" do
+      get "/work/rails-modular-monolith"
+
+      expect(last_response.status).to eq(200)
+      expect(last_response.body).to include("The outbox is a table, not a library")
+      expect(last_response.body).to include(%(href="/blog/the-outbox-is-a-table-not-a-library"))
+    end
+
     it "states the caveat on the research project rather than presenting it as shipped" do
       get "/work/act"
 

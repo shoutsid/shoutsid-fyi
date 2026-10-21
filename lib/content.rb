@@ -199,7 +199,9 @@ module ShoutsidFyi
         end
         Array(project["links"]).each do |link|
           url = link["url"].to_s
-          raise Error, "config/projects.yml: #{project["slug"]} link #{link["label"].inspect} is not a URL" unless url.match?(%r{\Ahttps?://})
+          unless url.match?(%r{\Ahttps?://}) || url.start_with?("/")
+            raise Error, "config/projects.yml: #{project["slug"]} link #{link["label"].inspect} is not a URL or a path on this site"
+          end
         end
 
         # A demo is rendered as a command and its output, so all three parts
@@ -250,6 +252,18 @@ module ShoutsidFyi
         raise Error, "content/blog/#{post.slug}.md: missing title" if blank?(post.title)
         raise Error, "content/blog/#{post.slug}.md: missing summary" if blank?(post.summary)
         raise Error, "content/blog/#{post.slug}.md: empty body" if blank?(post.body)
+      end
+
+      # A project's write-up is named by slug and the page derives the title
+      # and URL from the post, so a draft or a renamed post cannot leave a dead
+      # link. Published posts only: a link to a draft would 404 in production.
+      published_post_slugs = posts.map(&:slug)
+      projects.each do |project|
+        Array(project["posts"]).each do |slug|
+          next if published_post_slugs.include?(slug)
+
+          raise Error, "config/projects.yml: #{project["slug"]} posts #{slug.inspect}, which is not a published post"
+        end
       end
 
       # These lists are printed item by item by the templates, so an entry that
@@ -366,6 +380,10 @@ module ShoutsidFyi
         "notes" => raw["notes"].to_s,
         "stack" => scalar_list(raw["stack"], "config/projects.yml: #{raw["slug"]} stack"),
         "links" => Array(raw["links"]).map { |link| {"label" => link["label"].to_s, "url" => link["url"].to_s} },
+        # A project's write-ups, named by post slug. The project page derives
+        # the title and URL from the post itself, so a link cannot drift from
+        # the post it names; validation refuses a slug that is not published.
+        "posts" => Array(raw["posts"]).map(&:to_s),
         # A documented example needs all three parts to be worth rendering, and
         # each is coerced strictly for the reason above: an unquoted ": " in a
         # request line is a mapping, not a command.

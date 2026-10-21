@@ -83,6 +83,23 @@ RSpec.describe ShoutsidFyi::Content do
         .to raise_error(described_class::Error, /is not a URL/)
     end
 
+    it "accepts a project link that is a path on this site" do
+      allow(described_class).to receive(:projects).and_return(
+        [project("internal-link", links: [{"label" => "Write-up", "url" => "/blog/the-outbox-is-a-table-not-a-library"}])]
+      )
+
+      expect(described_class.validate!).to be(true)
+    end
+
+    it "rejects a project write-up that is not a published post" do
+      allow(described_class).to receive(:projects).and_return(
+        [project("bad-post", posts: ["no-such-post"])]
+      )
+
+      expect { described_class.validate! }
+        .to raise_error(described_class::Error, /not a published post/)
+    end
+
     # An unquoted `: ` inside a YAML block-sequence entry turns that entry
     # into a mapping rather than a string. Coerced with `to_s` it reaches the
     # page as a Ruby hash inspect: the agents.shoutsid.fyi card read
@@ -220,12 +237,13 @@ RSpec.describe ShoutsidFyi::Content do
       expect(described_class::SECTIONS).to eq(%w[main systems archive])
     end
 
-    # The four a Rails reader should meet first, in this order: the architecture
-    # case study, the two deployed services, then the public agent tooling that
-    # carries the AI-with-verification argument.
-    it "leads with the Rails work, the deployed services and the public agent tooling" do
+    # The Rails reader should meet, in this order: the architecture case study,
+    # the two deployed services, then the agent-tooling service and the two
+    # clients released from it — the corpus and the ladder first, then the
+    # miner that grows one and the upgrader that walks the other.
+    it "leads with the Rails work, the deployed services and the agent tooling" do
       expect(described_class.projects_in_section("main").map { |p| p["slug"] })
-        .to eq(%w[rails-modular-monolith webcap agents-fyi local-coder])
+        .to eq(%w[rails-modular-monolith webcap agents-fyi miner upgrader])
     end
 
     it "keeps the systems work and the research out of the first grid" do
@@ -252,8 +270,9 @@ RSpec.describe ShoutsidFyi::Content do
     it "normalises every project into the shape the templates read" do
       described_class.projects.each do |project|
         expect(project["slug"]).to match(/\A[a-z0-9-]+\z/)
-        expect(project).to include("title", "status", "tagline", "summary", "links", "stack", "highlights", "screenshots")
+        expect(project).to include("title", "status", "tagline", "summary", "links", "posts", "stack", "highlights", "screenshots")
         expect(project["links"]).to be_an(Array)
+        expect(project["posts"]).to be_an(Array)
         expect(project["stack"]).to be_an(Array)
       end
     end
@@ -485,7 +504,7 @@ RSpec.describe ShoutsidFyi::Content do
   # above. Building it here rather than from a fixture file keeps the failure
   # mode explicit: this is a project that could not have come out of
   # normalisation, which is the point.
-  def project(slug, status: "live", featured: true, links: [], section: "main")
+  def project(slug, status: "live", featured: true, links: [], posts: [], section: "main")
     {
       "slug" => slug,
       "title" => slug.capitalize,
@@ -499,6 +518,7 @@ RSpec.describe ShoutsidFyi::Content do
       "notes" => "",
       "stack" => [],
       "links" => links,
+      "posts" => posts,
       # `validate!` iterates these two, so a hand-built record has to carry them
       # as well as a normalised one does.
       "screenshots" => [],
